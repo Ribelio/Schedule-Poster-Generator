@@ -1,0 +1,13 @@
+[workspace]
+authors = ["Ribelio <f.camachoperezdesevilla@student.maastrichtuniversity.nl>"]
+channels = ["conda-forge"]
+name = "mangaclub"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+matplotlib = ">=3.10.8,<4"
+pillow = ">=12.0.0,<13"
+numpy = ">=2.3.5,<3"
