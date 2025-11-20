@@ -1,0 +1,3 @@
+# This file ensures the output/images directory is tracked by git
+# Generated images will be saved here but are ignored by .gitignore
+

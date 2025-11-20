@@ -10,6 +10,7 @@ A Python tool for generating beautiful visual schedule posters for manga book cl
 - 🎯 **Smart Image Processing**: Center-crop and zoom functionality to focus on character art
 - 📐 **Dynamic Layout**: Automatically adjusts layout based on number of schedule items
 - 🎭 **Stylized Design**: Parallelogram frames with drop shadows and modern dark theme
+- 🖋️ **Background Line Art**: Optional low-transparency line art background layer
 
 ## Screenshot
 
@@ -44,7 +45,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-1. **Configure the schedule**: Edit the `schedule` list in `schedule.py` with your dates and volume numbers:
+1. **Configure the schedule**: Edit the `schedule` list in `config.py` with your dates and volume numbers:
    ```python
    schedule = [
        ("November 22, 2025", [2, 3]),
@@ -53,7 +54,7 @@ pip install -r requirements.txt
    ]
    ```
 
-2. **Add volume cover URLs**: Update the `cover_urls` dictionary with URLs for each volume:
+2. **Add volume cover URLs**: Update the `cover_urls` dictionary in `config.py` with URLs for each volume:
    ```python
    cover_urls = {
        1: "https://example.com/volume1.jpg",
@@ -71,11 +72,11 @@ pip install -r requirements.txt
    python schedule.py
    ```
 
-4. **Output**: The script will generate `choujin_x_schedule_fixed.png` in the project directory.
+4. **Output**: The script will generate `choujin_x_schedule.png` in the `output/images/` directory.
 
 ## Configuration Options
 
-You can customize the poster appearance by modifying these variables in `schedule.py`:
+You can customize the poster appearance by modifying these variables in `config.py`:
 
 - **`ZOOM_FACTOR`** (default: `0.95`): Controls how much the images are zoomed/cropped. Higher values = more zoom into center.
 - **`VERTICAL_OFFSET`** (default: `-0.1`): Adjusts vertical positioning of images. Positive values move images higher.
@@ -88,7 +89,15 @@ You can customize the poster appearance by modifying these variables in `schedul
 
 ```
 Schedule-Poster-Generator/
-├── schedule.py              # Main script
+├── schedule.py              # Main entry point
+├── config.py                # Configuration (schedule data, URLs, settings)
+├── image_utils.py           # Image loading and processing utilities
+├── geometry.py              # Geometry and layout calculation functions
+├── renderer.py              # Main rendering logic
+├── vector_background.py     # Utility script to create high-contrast PNG stencil
+├── output/
+│   └── images/              # Generated images directory
+│       └── .gitkeep         # Preserves directory structure
 ├── pixi.toml                # Pixi dependency configuration
 ├── pixi.lock                # Pixi lock file
 ├── requirements.txt         # pip requirements (alternative to pixi)
@@ -101,7 +110,7 @@ Schedule-Poster-Generator/
 
 ### Changing the Title
 
-Edit the title text in `schedule.py`:
+Edit the title text in `config.py` (or modify the rendering in `renderer.py`):
 ```python
 ax.text(fig_width / 2, title_y, "Your Custom Title Here",
         ha='center', va='center', fontsize=42, fontweight='bold',
@@ -111,16 +120,19 @@ ax.text(fig_width / 2, title_y, "Your Custom Title Here",
 
 ### Changing Colors
 
-The poster uses a dark theme (`#1a1a1a` background). You can modify:
-- Background color: `fig.patch.set_facecolor('#1a1a1a')`
-- Text color: `color='white'` in text elements
-- Frame border color: `edgecolor='white'` in the Polygon
+The poster uses a dark theme (`#1a1a1a` background). You can modify these in `config.py`:
+- `BACKGROUND_COLOR`: Background color
+- `TEXT_COLOR`: Text color
+- `FRAME_BORDER_COLOR`: Frame border color
 
 ### Adjusting Layout
 
-- **Grid columns**: Change `cols = 2` to adjust the number of columns
-- **Spacing**: Modify `vertical_padding` and `frame_spacing` variables
-- **Figure size**: Adjust `fig_width` and `fig_height` calculations
+Modify these settings in `config.py`:
+- **Grid columns**: Change `COLS` to adjust the number of columns
+- **Spacing**: Modify `VERTICAL_PADDING`, `FRAME_SPACING`, `COLUMN_SPACING`
+- **Frame dimensions**: Adjust `FRAME_WIDTH`, `FRAME_HEIGHT`, `SKEW_ANGLE`
+- **Title settings**: Modify `TITLE_TEXT`, `TITLE_FONTSIZE`, etc.
+- **Background line art**: Adjust `BACKGROUND_LINEART_ENABLED`, `BACKGROUND_LINEART_ALPHA` to control the background layer
 
 ## Troubleshooting
 

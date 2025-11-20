@@ -13,11 +13,14 @@ venv/
 ENV/
 .venv
 
-# Output images
+# Output images and generated files
+output/images/*
+!output/images/.gitkeep
 *.png
 *.jpg
 *.jpeg
 *.gif
+*.svg
 !README*.png
 !README*.jpg
 
