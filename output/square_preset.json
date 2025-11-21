@@ -1,0 +1,40 @@
+{
+  "manga_title": "Choujin X",
+  "zoom_factor": 1.02,
+  "vertical_offset": -0.15,
+  "cols": 3,
+  "title_row_height": 3.0,
+  "vertical_padding": 1.0,
+  "bottom_margin": 1.0,
+  "horizontal_padding": 0.5,
+  "column_spacing": 0.5,
+  "shape_preset": {
+    "type": "rectangle",
+    "width": 3.0,
+    "height": 3.0,
+    "spacing": 0.0,
+    "border_color": "black",
+    "shadow_alpha": 0.4,
+    "skew_angle": -15.0,
+    "rotation_angle": 0.0
+  },
+  "stagger_preset": {
+    "type": "alternating",
+    "offset": 0.1
+  },
+  "title_fontsize": 42,
+  "title_fontweight": "bold",
+  "title_color": "white",
+  "title_fontfamily": "Courier New",
+  "date_fontsize": 18,
+  "volume_fontsize": 14,
+  "text_color": "white",
+  "background_color": "#1a1a1a",
+  "frame_border_color": "white",
+  "background_lineart_enabled": true,
+  "background_lineart_path": "output/images/background_lineart.png",
+  "background_lineart_alpha": 0.15,
+  "background_lineart_color": "white",
+  "output_dir": "output/images",
+  "dpi": 200
+}
