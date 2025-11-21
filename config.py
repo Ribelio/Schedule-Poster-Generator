@@ -52,11 +52,31 @@ BOTTOM_MARGIN = 1.0  # Bottom margin
 HORIZONTAL_PADDING = -1.0  # Horizontal padding on each side of cell
 COLUMN_SPACING = 0.2  # Spacing between columns
 
-# Frame parameters
-FRAME_WIDTH = 2.8
-FRAME_HEIGHT = 3.5
-SKEW_ANGLE = 15  # degrees
-FRAME_SPACING = 0.5  # Space between frames in a row
+# ============================================================================
+# SHAPE PRESETS
+# ============================================================================
+
+# Shape preset configuration
+# Each preset defines the frame shape and its parameters.
+# To add new shapes, create a new Frame subclass in frame.py
+# and update the create_frame_from_preset() factory function.
+SHAPE_PRESET = {
+    'type': 'parallelogram',  # Shape type: 'parallelogram', 'rhombus', 'rectangle', 'hexagon', etc.
+    'width': 2.8,            # Frame width
+    'height': 3.5,            # Frame height
+    'spacing': 0.5,           # Space between frames in a row
+    'border_color': 'white',  # Frame border color
+    'shadow_alpha': 0.4,      # Shadow transparency (0.0-1.0)
+    # Shape-specific parameters (add more as needed for different shapes)
+    'skew_angle': 15,         # degrees (for parallelogram only)
+    'rotation_angle': 0,      # degrees (for rhombus only, 0 = diamond pointing up)
+}
+
+# Legacy frame parameters (kept for backward compatibility, derived from preset)
+FRAME_WIDTH = SHAPE_PRESET['width']
+FRAME_HEIGHT = SHAPE_PRESET['height']
+FRAME_SPACING = SHAPE_PRESET['spacing']
+SKEW_ANGLE = SHAPE_PRESET['skew_angle']
 
 # Title settings
 TITLE_TEXT = "Choujin X Book Club Schedule"

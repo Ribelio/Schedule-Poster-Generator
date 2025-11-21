@@ -95,6 +95,7 @@ Schedule-Poster-Generator/
 ├── geometry.py              # Geometry and layout calculation functions
 ├── renderer.py              # Main rendering logic
 ├── vector_background.py     # Utility script to create high-contrast PNG stencil
+├── frame.py                 # Frame classes for different shape types
 ├── output/
 │   └── images/              # Generated images directory
 │       └── .gitkeep         # Preserves directory structure
@@ -133,6 +134,9 @@ Modify these settings in `config.py`:
 - **Frame dimensions**: Adjust `FRAME_WIDTH`, `FRAME_HEIGHT`, `SKEW_ANGLE`
 - **Title settings**: Modify `TITLE_TEXT`, `TITLE_FONTSIZE`, etc.
 - **Background line art**: Adjust `BACKGROUND_LINEART_ENABLED`, `BACKGROUND_LINEART_ALPHA` to control the background layer
+- **Frame shapes**: Change `SHAPE_PRESET['type']` to switch between frame shapes:
+  - `'parallelogram'`: Skewed parallelogram (use `skew_angle` parameter)
+  - `'rhombus'`: Diamond-shaped rhombus (use `rotation_angle` parameter for rotation)
 
 ## Troubleshooting
 

@@ -3,8 +3,6 @@ Rendering logic for creating the schedule poster.
 """
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon
-from matplotlib.path import Path
 from matplotlib.patheffects import withStroke
 import numpy as np
 import os
@@ -18,10 +16,11 @@ from config import (
     VOLUME_FONTSIZE, TEXT_COLOR, BACKGROUND_COLOR, FRAME_BORDER_COLOR,
     OUTPUT_DIR, OUTPUT_FILENAME, DPI,
     BACKGROUND_LINEART_ENABLED, BACKGROUND_LINEART_PATH, BACKGROUND_LINEART_ALPHA,
-    BACKGROUND_LINEART_COLOR
+    BACKGROUND_LINEART_COLOR, SHAPE_PRESET
 )
 from image_utils import load_image, center_crop_zoom
-from geometry import calculate_parallelogram_vertices, calculate_layout_dimensions
+from geometry import calculate_layout_dimensions
+from frame import create_frame_from_preset
 from PIL import Image as PILImage
 
 
@@ -60,38 +59,6 @@ def calculate_scale_factor(num_vols, frame_width, frame_spacing):
     return scale_factor
 
 
-def render_volume_frame(ax, x_center, y_center, scaled_frame_width, scaled_frame_height,
-                       skew_angle, zorder_base=1):
-    """
-    Render a single volume frame with shadow and border.
-    
-    Returns:
-        vertices: numpy array of parallelogram vertices
-        clip_path: Path object for clipping
-    """
-    # Calculate parallelogram vertices
-    vertices = calculate_parallelogram_vertices(
-        x_center, y_center, scaled_frame_width, scaled_frame_height, skew_angle
-    )
-    
-    # Create clipping path
-    clip_path = Path(vertices)
-    
-    # Draw drop shadow (offset parallelogram behind main frame)
-    shadow_offset = 0.15
-    shadow_vertices = vertices + np.array([shadow_offset, -shadow_offset])
-    shadow = Polygon(shadow_vertices, closed=True,
-                    facecolor='black', edgecolor='none',
-                    alpha=0.4, zorder=zorder_base)
-    ax.add_patch(shadow)
-    
-    # Draw main frame border (thick white stroke)
-    frame = Polygon(vertices, closed=True,
-                   edgecolor=FRAME_BORDER_COLOR, linewidth=4,
-                   facecolor='none', zorder=zorder_base + 3)
-    ax.add_patch(frame)
-    
-    return vertices, clip_path
 
 
 def render_volume_image(ax, vol, vertices, clip_path, x_center, y_center):
@@ -209,9 +176,22 @@ def render_background_lineart(ax, fig_width, fig_height):
         print(f"Warning: Failed to load background line art: {e}")
 
 
-def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_width, frame_height,
-                         frame_spacing, skew_angle):
-    """Render a single schedule item with date, volumes, and frames."""
+def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance):
+    """
+    Render a single schedule item with date, volumes, and frames.
+    
+    Args:
+        ax: Matplotlib axes
+        date: Date string
+        vols: List of volume numbers
+        cell_x, cell_y: Cell center position
+        frame_instance: Frame instance (from create_frame_from_preset)
+    """
+    # Extract shape parameters from frame instance
+    frame_width = frame_instance.width
+    frame_height = frame_instance.height
+    frame_spacing = frame_instance.spacing
+    
     # Date text
     ax.text(cell_x, cell_y + frame_height / 2 + 0.4, date,
             ha='center', va='bottom', fontsize=DATE_FONTSIZE, fontweight='bold',
@@ -242,9 +222,9 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_width, frame_heig
         x_center = start_x + j * (scaled_frame_width + scaled_frame_spacing) + scaled_frame_width / 2
         y_center = cell_y
         
-        # Render frame
-        vertices, clip_path = render_volume_frame(
-            ax, x_center, y_center, scaled_frame_width, scaled_frame_height, skew_angle
+        # Render frame using Frame class
+        vertices, clip_path = frame_instance.render(
+            ax, x_center, y_center, scaled_frame_width, scaled_frame_height
         )
         
         # Render image
@@ -253,10 +233,13 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_width, frame_heig
 
 def create_poster():
     """Main function to create and save the schedule poster."""
+    # Create frame instance from preset
+    frame_instance = create_frame_from_preset(SHAPE_PRESET)
+    
     # Calculate layout dimensions
     fig_width, fig_height, cell_width, cell_height, min_cell_width, content_rows = \
         calculate_layout_dimensions(
-            schedule, COLS, FRAME_WIDTH, FRAME_SPACING,
+            schedule, COLS, frame_instance.width, frame_instance.spacing,
             HORIZONTAL_PADDING, COLUMN_SPACING, TITLE_ROW_HEIGHT,
             VERTICAL_PADDING, BOTTOM_MARGIN
         )
@@ -292,9 +275,8 @@ def create_poster():
         y_offset = row * (cell_height + VERTICAL_PADDING)
         cell_y = start_y - y_offset - cell_height / 2
         
-        # Render the schedule item
-        render_schedule_item(ax, date, vols, cell_x, cell_y,
-                           FRAME_WIDTH, FRAME_HEIGHT, FRAME_SPACING, SKEW_ANGLE)
+        # Render the schedule item using frame instance
+        render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance)
     
     # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
