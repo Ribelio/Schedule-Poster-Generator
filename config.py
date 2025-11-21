@@ -3,8 +3,9 @@ Configuration file for the Schedule Poster Generator.
 Contains schedule data, cover URLs, and visual settings.
 """
 
-from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from dataclasses import dataclass, asdict
+from typing import Dict, List, Tuple, Any
+import json
 
 # ============================================================================
 # SCHEDULE DATA
@@ -119,6 +120,78 @@ class PosterConfig:
     def output_filename(self) -> str:
         """Generate output filename from manga title."""
         return f"{self.manga_title}_schedule.png"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the config to a dictionary for JSON serialization.
+        
+        Returns:
+            Dictionary representation of the config
+        """
+        # Use asdict to convert dataclass to dict, but handle nested dicts properly
+        result = asdict(self)
+        # Ensure nested dicts are properly serialized
+        if isinstance(result.get('shape_preset'), dict):
+            result['shape_preset'] = dict(result['shape_preset'])
+        if isinstance(result.get('stagger_preset'), dict):
+            result['stagger_preset'] = dict(result['stagger_preset'])
+        return result
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'PosterConfig':
+        """
+        Create a PosterConfig instance from a dictionary.
+        
+        Args:
+            data: Dictionary containing config values
+            
+        Returns:
+            PosterConfig instance
+        """
+        # Create a copy to avoid modifying the input
+        config_data = data.copy()
+        
+        # Ensure nested dicts are properly handled
+        if 'shape_preset' in config_data and config_data['shape_preset'] is not None:
+            if not isinstance(config_data['shape_preset'], dict):
+                config_data['shape_preset'] = dict(config_data['shape_preset'])
+        else:
+            config_data['shape_preset'] = None
+            
+        if 'stagger_preset' in config_data and config_data['stagger_preset'] is not None:
+            if not isinstance(config_data['stagger_preset'], dict):
+                config_data['stagger_preset'] = dict(config_data['stagger_preset'])
+        else:
+            config_data['stagger_preset'] = None
+        
+        # Create instance and let __post_init__ handle defaults
+        instance = cls(**config_data)
+        return instance
+    
+    def save_to_json(self, filepath: str):
+        """
+        Save the config to a JSON file.
+        
+        Args:
+            filepath: Path to save the JSON file
+        """
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
+    
+    @classmethod
+    def load_from_json(cls, filepath: str) -> 'PosterConfig':
+        """
+        Load a config from a JSON file.
+        
+        Args:
+            filepath: Path to the JSON file
+            
+        Returns:
+            PosterConfig instance
+        """
+        with open(filepath, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return cls.from_dict(data)
 
 
 # Create default config instance

@@ -160,6 +160,21 @@ class PosterEditor(QMainWindow):
         inspector_widget = QWidget()
         inspector_layout = QVBoxLayout(inspector_widget)
         
+        # Preset buttons toolbar
+        preset_toolbar = QWidget()
+        preset_layout = QHBoxLayout(preset_toolbar)
+        preset_layout.setContentsMargins(5, 5, 5, 5)
+        preset_layout.setSpacing(5)
+        
+        open_preset_btn = QPushButton("📂 Open Preset")
+        open_preset_btn.clicked.connect(self._load_preset)
+        save_preset_btn = QPushButton("💾 Save Preset")
+        save_preset_btn.clicked.connect(self._save_preset)
+        
+        preset_layout.addWidget(open_preset_btn)
+        preset_layout.addWidget(save_preset_btn)
+        inspector_layout.addWidget(preset_toolbar)
+        
         # Scrollable form area
         form_scroll = QScrollArea()
         form_scroll.setWidgetResizable(True)
@@ -476,12 +491,142 @@ class PosterEditor(QMainWindow):
             self.preview_label.setText(f"Error: {str(e)}")
             print(f"Preview error: {e}")
     
+    def _save_preset(self):
+        """Save current configuration as a JSON preset."""
+        try:
+            self._update_config_from_widgets()
+            file_path, _ = QFileDialog.getSaveFileName(
+                self, "Save Preset", "preset.json",
+                "JSON Files (*.json);;All Files (*)"
+            )
+            if file_path:
+                self.config.save_to_json(file_path)
+                self.preview_label.setText(f"Preset saved to:\n{file_path}")
+        except Exception as e:
+            self.preview_label.setText(f"Save preset error: {str(e)}")
+            print(f"Save preset error: {e}")
+    
+    def _load_preset(self):
+        """Load a configuration from a JSON preset file."""
+        try:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Open Preset", "",
+                "JSON Files (*.json);;All Files (*)"
+            )
+            if file_path:
+                self.config = PosterConfig.load_from_json(file_path)
+                # Temporarily disconnect signals to avoid triggering preview during update
+                self._disconnect_widget_signals()
+                self._update_widgets_from_config()
+                self._reconnect_widget_signals()
+                # Trigger preview update after widgets are updated
+                self._trigger_preview_update()
+                self.preview_label.setText(f"Preset loaded from:\n{file_path}")
+        except Exception as e:
+            self.preview_label.setText(f"Load preset error: {str(e)}")
+            print(f"Load preset error: {e}")
+    
+    def _disconnect_widget_signals(self):
+        """Temporarily disconnect all widget signals to prevent preview updates."""
+        for widget in self.widgets.values():
+            try:
+                if hasattr(widget, 'textChanged'):
+                    widget.textChanged.disconnect()
+                if hasattr(widget, 'valueChanged'):
+                    widget.valueChanged.disconnect()
+                if hasattr(widget, 'currentTextChanged'):
+                    widget.currentTextChanged.disconnect()
+                if hasattr(widget, 'stateChanged'):
+                    widget.stateChanged.disconnect()
+            except TypeError:
+                # Signal not connected, ignore
+                pass
+    
+    def _reconnect_widget_signals(self):
+        """Reconnect all widget signals to trigger preview updates."""
+        for field_name, widget in self.widgets.items():
+            if hasattr(widget, 'textChanged'):
+                widget.textChanged.connect(self._trigger_preview_update)
+            if hasattr(widget, 'valueChanged'):
+                widget.valueChanged.connect(self._trigger_preview_update)
+            if hasattr(widget, 'currentTextChanged'):
+                widget.currentTextChanged.connect(self._trigger_preview_update)
+            if hasattr(widget, 'stateChanged'):
+                widget.stateChanged.connect(self._trigger_preview_update)
+    
+    def _update_widgets_from_config(self):
+        """Update all widgets to reflect the current config values."""
+        # Simple fields
+        self.widgets['manga_title'].setText(self.config.manga_title)
+        self.widgets['zoom_factor'].setValue(self.config.zoom_factor)
+        self.widgets['vertical_offset'].setValue(self.config.vertical_offset)
+        self.widgets['cols'].setValue(self.config.cols)
+        self.widgets['title_row_height'].setValue(self.config.title_row_height)
+        self.widgets['vertical_padding'].setValue(self.config.vertical_padding)
+        self.widgets['bottom_margin'].setValue(self.config.bottom_margin)
+        self.widgets['horizontal_padding'].setValue(self.config.horizontal_padding)
+        self.widgets['column_spacing'].setValue(self.config.column_spacing)
+        self.widgets['title_fontsize'].setValue(self.config.title_fontsize)
+        self.widgets['title_fontweight'].setCurrentText(self.config.title_fontweight)
+        self.widgets['title_color'].setText(self.config.title_color)
+        self.widgets['title_fontfamily'].setText(self.config.title_fontfamily)
+        self.widgets['date_fontsize'].setValue(self.config.date_fontsize)
+        self.widgets['volume_fontsize'].setValue(self.config.volume_fontsize)
+        self.widgets['text_color'].setText(self.config.text_color)
+        self.widgets['background_color'].setText(self.config.background_color)
+        self.widgets['frame_border_color'].setText(self.config.frame_border_color)
+        self.widgets['background_lineart_enabled'].setChecked(self.config.background_lineart_enabled)
+        self.widgets['background_lineart_path'].setText(self.config.background_lineart_path)
+        self.widgets['background_lineart_alpha'].setValue(self.config.background_lineart_alpha)
+        self.widgets['output_dir'].setText(self.config.output_dir)
+        self.widgets['dpi'].setValue(self.config.dpi)
+        
+        # Shape preset
+        if 'shape_type' in self.widgets:
+            self.widgets['shape_type'].setCurrentText(self.config.shape_preset.get('type', 'parallelogram'))
+        if 'shape_width' in self.widgets:
+            self.widgets['shape_width'].setValue(self.config.shape_preset.get('width', 1.5))
+        if 'shape_height' in self.widgets:
+            self.widgets['shape_height'].setValue(self.config.shape_preset.get('height', 2.5))
+        if 'shape_spacing' in self.widgets:
+            self.widgets['shape_spacing'].setValue(self.config.shape_preset.get('spacing', 0.0))
+        if 'shape_border_color' in self.widgets:
+            self.widgets['shape_border_color'].setText(self.config.shape_preset.get('border_color', 'gold'))
+        if 'shape_shadow_alpha' in self.widgets:
+            self.widgets['shape_shadow_alpha'].setValue(self.config.shape_preset.get('shadow_alpha', 0.4))
+        if 'shape_skew_angle' in self.widgets:
+            self.widgets['shape_skew_angle'].setValue(self.config.shape_preset.get('skew_angle', -15))
+        if 'shape_rotation_angle' in self.widgets:
+            self.widgets['shape_rotation_angle'].setValue(self.config.shape_preset.get('rotation_angle', 0))
+        
+        # Stagger preset
+        if 'stagger_type' in self.widgets:
+            self.widgets['stagger_type'].setCurrentText(self.config.stagger_preset.get('type', 'none'))
+        if 'stagger_offset' in self.widgets:
+            self.widgets['stagger_offset'].setValue(self.config.stagger_preset.get('offset', 0.1))
+    
     def _export_to_disk(self):
         """Export the current poster to disk."""
         try:
             self._update_config_from_widgets()
-            output_path = create_poster(self.config)
-            self.preview_label.setText(f"Saved to:\n{output_path}")
+            
+            # Get file path with format selection
+            file_path, selected_filter = QFileDialog.getSaveFileName(
+                self, "Save Poster", self.config.output_filename,
+                "Images (*.png *.svg);;PNG Files (*.png);;SVG Files (*.svg);;All Files (*)"
+            )
+            
+            if file_path:
+                # Determine format from extension
+                if file_path.lower().endswith('.svg'):
+                    output_path = create_poster(self.config, output_path=file_path, format='svg')
+                else:
+                    # Default to PNG
+                    if not file_path.lower().endswith('.png'):
+                        file_path += '.png'
+                    output_path = create_poster(self.config, output_path=file_path, format='png')
+                
+                self.preview_label.setText(f"Saved to:\n{output_path}")
         except Exception as e:
             self.preview_label.setText(f"Export error: {str(e)}")
             print(f"Export error: {e}")

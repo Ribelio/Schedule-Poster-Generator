@@ -301,7 +301,7 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance, stagger
         render_volume_image(ax, vol, vertices, clip_path, x_center, y_center, config, frame_instance)
 
 
-def render_poster_to_buffer(poster_config, cover_data, schedule):
+def render_poster_to_buffer(poster_config, cover_data, schedule, format='png'):
     """
     Render the poster to an in-memory buffer (BytesIO) for live preview.
     
@@ -309,6 +309,7 @@ def render_poster_to_buffer(poster_config, cover_data, schedule):
         poster_config: PosterConfig instance
         cover_data: Dictionary mapping volume numbers to cover URLs
         schedule: List of (date, volumes) tuples
+        format: Output format ('png' or 'svg'), defaults to 'png'
         
     Returns:
         BytesIO object containing the rendered image
@@ -364,9 +365,15 @@ def render_poster_to_buffer(poster_config, cover_data, schedule):
             # Render the schedule item using frame instance and stagger strategy
             render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance, stagger_strategy, poster_config)
         
+        # Configure SVG settings for Figma compatibility if needed
+        if format.lower() == 'svg':
+            # Critical: Set fonttype to 'none' so text remains editable in Figma/Illustrator
+            # Without this, text gets converted to paths and becomes uneditable
+            plt.rcParams['svg.fonttype'] = 'none'
+        
         # Save to BytesIO buffer
         buffer = io.BytesIO()
-        plt.savefig(buffer, format='png', dpi=poster_config.dpi, bbox_inches='tight',
+        plt.savefig(buffer, format=format, dpi=poster_config.dpi, bbox_inches='tight',
                     facecolor=fig.get_facecolor(), edgecolor='none')
         buffer.seek(0)
         
@@ -379,10 +386,18 @@ def render_poster_to_buffer(poster_config, cover_data, schedule):
         cover_urls.update(original_cover_urls)
 
 
-def create_poster(poster_config=None):
+def create_poster(poster_config=None, output_path=None, format=None):
     """
     Main function to create and save the schedule poster to disk.
     Wrapper around render_poster_to_buffer that saves to file.
+    
+    Args:
+        poster_config: PosterConfig instance (uses default if None)
+        output_path: Optional custom output path (uses default if None)
+        format: Optional format ('png' or 'svg'), auto-detected from extension if None
+    
+    Returns:
+        Path to saved file
     """
     from config import schedule, cover_urls, config as default_config
     from manga_fetcher import MangaDexFetcher
@@ -406,12 +421,27 @@ def create_poster(poster_config=None):
     
     print(f"Loaded {len(merged_covers)} cover URL(s)\n")
     
+    # Determine output path and format
+    if output_path is None:
+        os.makedirs(poster_config.output_dir, exist_ok=True)
+        if format == 'svg':
+            filename = poster_config.output_filename.replace('.png', '.svg')
+        else:
+            filename = poster_config.output_filename
+        output_path = os.path.join(poster_config.output_dir, filename)
+    
+    # Auto-detect format from extension if not specified
+    if format is None:
+        if output_path.lower().endswith('.svg'):
+            format = 'svg'
+        else:
+            format = 'png'
+    
     # Render to buffer
-    buffer = render_poster_to_buffer(poster_config, merged_covers, schedule)
+    buffer = render_poster_to_buffer(poster_config, merged_covers, schedule, format=format)
     
     # Ensure output directory exists
-    os.makedirs(poster_config.output_dir, exist_ok=True)
-    output_path = os.path.join(poster_config.output_dir, poster_config.output_filename)
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
     
     # Save to disk
     with open(output_path, 'wb') as f:
