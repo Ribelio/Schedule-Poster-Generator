@@ -3,6 +3,9 @@ Configuration file for the Schedule Poster Generator.
 Contains schedule data, cover URLs, and visual settings.
 """
 
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
+
 # ============================================================================
 # SCHEDULE DATA
 # ============================================================================
@@ -11,7 +14,7 @@ Contains schedule data, cover URLs, and visual settings.
 MANGA_TITLE = "Choujin X"
 
 # List of dates and volume pairs
-schedule = [
+schedule: List[Tuple[str, List[int]]] = [
     # ("November 15, 2025", [1]),
     ("November 22, 2025", [2, 3]),
     ("November 29, 2025", [4, 5]),
@@ -23,89 +26,101 @@ schedule = [
 
 # URLs for volume covers (manual overrides - will be merged with MangaDex results)
 # Leave empty to use only MangaDex, or specify manual URLs for specific volumes
-cover_urls = {
+cover_urls: Dict[int, str] = {
     # Manual overrides can be added here if needed
     # Example: 1: "https://example.com/volume1.jpg"
 }
 
 # ============================================================================
-# VISUAL SETTINGS
+# CONFIGURATION DATACLASS
 # ============================================================================
 
-# Image processing settings
-ZOOM_FACTOR = 1.1  # Center-crop-zoom factor: Higher values = more zoom into center
-VERTICAL_OFFSET = -0.10  # Vertical offset for image positioning (positive = higher)
+@dataclass
+class PosterConfig:
+    """Configuration dataclass for poster generation settings."""
+    
+    # Manga title
+    manga_title: str = MANGA_TITLE
+    
+    # Image processing settings
+    zoom_factor: float = 1.1  # Center-crop-zoom factor: Higher values = more zoom into center
+    vertical_offset: float = -0.10  # Vertical offset for image positioning (positive = higher)
+    
+    # Layout settings
+    cols: int = 3  # Number of columns in the grid
+    title_row_height: float = 3.0  # Height reserved for title row
+    vertical_padding: float = 1  # Padding between content rows
+    bottom_margin: float = 1.0  # Bottom margin
+    horizontal_padding: float = 0.5  # Horizontal padding on each side of cell
+    column_spacing: float = 0.5  # Spacing between columns
+    
+    # Shape preset configuration
+    # Each preset defines the frame shape and its parameters.
+    # To add new shapes, create a new Frame subclass in frame.py
+    # and update the create_frame_from_preset() factory function.
+    shape_preset: Dict = None
+    
+    # Stagger strategy configuration
+    # Controls vertical positioning of frames within a cell
+    stagger_preset: Dict = None
+    
+    # Title settings
+    title_fontsize: int = 42
+    title_fontweight: str = 'bold'
+    title_color: str = 'white'
+    title_fontfamily: str = 'Courier New'
+    
+    # Text settings
+    date_fontsize: int = 18
+    volume_fontsize: int = 14
+    text_color: str = 'white'
+    
+    # Color scheme
+    background_color: str = '#1a1a1a'
+    frame_border_color: str = 'white'
+    
+    # Background line art settings
+    background_lineart_enabled: bool = True  # Set to False to disable background
+    background_lineart_path: str = "output/images/background_lineart.png"
+    background_lineart_alpha: float = 0.15  # Transparency (0.0 = fully transparent, 1.0 = opaque)
+    background_lineart_color: str = 'white'  # Color for the line art (if using monochrome)
+    
+    # Output settings
+    output_dir: str = "output/images"
+    dpi: int = 200
+    
+    def __post_init__(self):
+        """Initialize preset dictionaries if not provided."""
+        if self.shape_preset is None:
+            self.shape_preset = {
+                'type': 'parallelogram',  # Shape type: 'parallelogram', 'rhombus', 'rectangle', 'hexagon', etc.
+                'width': 1.5,            # Frame width
+                'height': 2.5,            # Frame height
+                'spacing': 0.0,           # Space between frames in a row
+                'border_color': 'gold',  # Frame border color
+                'shadow_alpha': 0.4,      # Shadow transparency (0.0-1.0)
+                # Shape-specific parameters (add more as needed for different shapes)
+                'skew_angle': -15,         # degrees (for parallelogram only)
+                'rotation_angle': 0,      # degrees (for rhombus only, 0 = diamond pointing up)
+            }
+        
+        if self.stagger_preset is None:
+            self.stagger_preset = {
+                'type': 'none',      # Stagger type: 'none', 'alternating', 'staircase'
+                'offset': 0.1,       # Vertical distance per step (in figure units)
+            }
+    
+    @property
+    def title_text(self) -> str:
+        """Generate title text from manga title."""
+        return f"{self.manga_title} Book Club Schedule"
+    
+    @property
+    def output_filename(self) -> str:
+        """Generate output filename from manga title."""
+        return f"{self.manga_title}_schedule.png"
 
-# Layout settings
-COLS = 3  # Number of columns in the grid
-TITLE_ROW_HEIGHT = 3.0  # Height reserved for title row
-VERTICAL_PADDING = 1  # Padding between content rows
-BOTTOM_MARGIN = 1.0  # Bottom margin
-HORIZONTAL_PADDING = 0.5  # Horizontal padding on each side of cell
-COLUMN_SPACING = 0.5    # Spacing between columns
 
-# ============================================================================
-# SHAPE PRESETS
-# ============================================================================
-
-# Shape preset configuration
-# Each preset defines the frame shape and its parameters.
-# To add new shapes, create a new Frame subclass in frame.py
-# and update the create_frame_from_preset() factory function.
-SHAPE_PRESET = {
-    'type': 'parallelogram',  # Shape type: 'parallelogram', 'rhombus', 'rectangle', 'hexagon', etc.
-    'width': 1.5,            # Frame width
-    'height': 2.5,            # Frame height
-    'spacing': 0.0,           # Space between frames in a row
-    'border_color': 'gold',  # Frame border color
-    'shadow_alpha': 0.4,      # Shadow transparency (0.0-1.0)
-    # Shape-specific parameters (add more as needed for different shapes)
-    'skew_angle': -15,         # degrees (for parallelogram only)
-    'rotation_angle': 0,      # degrees (for rhombus only, 0 = diamond pointing up)
-}
-
-# Legacy frame parameters (kept for backward compatibility, derived from preset)
-FRAME_WIDTH = SHAPE_PRESET['width']
-FRAME_HEIGHT = SHAPE_PRESET['height']
-FRAME_SPACING = SHAPE_PRESET['spacing']
-SKEW_ANGLE = SHAPE_PRESET['skew_angle']
-
-# ============================================================================
-# STAGGER STRATEGY PRESETS
-# ============================================================================
-
-# Stagger strategy configuration
-# Controls vertical positioning of frames within a cell
-STAGGER_PRESET = {
-    'type': 'none',      # Stagger type: 'none', 'alternating', 'staircase'
-    'offset': 0.1,       # Vertical distance per step (in figure units)
-}
-
-# Title settings
-TITLE_TEXT = f"{MANGA_TITLE} Book Club Schedule"
-TITLE_FONTSIZE = 42
-TITLE_FONTWEIGHT = 'bold'
-TITLE_COLOR = 'white'
-TITLE_FONTFAMILY = 'Courier New'
-
-# Text settings
-DATE_FONTSIZE = 18
-VOLUME_FONTSIZE = 14
-TEXT_COLOR = 'white'
-
-# Color scheme
-BACKGROUND_COLOR = '#1a1a1a'
-FRAME_BORDER_COLOR = 'white'
-
-# Background line art settings
-BACKGROUND_LINEART_ENABLED = True  # Set to False to disable background
-# Path to line art image (supports PNG, JPG formats)
-BACKGROUND_LINEART_PATH = "output/images/background_lineart.png"
-BACKGROUND_LINEART_ALPHA = 0.15  # Transparency (0.0 = fully transparent, 1.0 = opaque)
-BACKGROUND_LINEART_COLOR = 'white'  # Color for the line art (if using monochrome)
-
-# Output settings
-OUTPUT_DIR = "output/images"
-OUTPUT_FILENAME = f"{MANGA_TITLE}_schedule.png"
-DPI = 200
+# Create default config instance
+config = PosterConfig()
 

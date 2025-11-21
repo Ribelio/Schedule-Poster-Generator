@@ -46,6 +46,26 @@ class Frame:
         """
         raise NotImplementedError("Subclasses must implement calculate_vertices")
     
+    def get_bounding_box(self, vertices):
+        """
+        Calculate the bounding box of the frame vertices.
+        
+        Args:
+            vertices: numpy array of shape (n, 2) with vertices
+            
+        Returns:
+            tuple: (width, height) of the bounding box
+        """
+        min_x = vertices[:, 0].min()
+        max_x = vertices[:, 0].max()
+        min_y = vertices[:, 1].min()
+        max_y = vertices[:, 1].max()
+        
+        width = max_x - min_x
+        height = max_y - min_y
+        
+        return width, height
+    
     def render(self, ax, x_center, y_center, scaled_width, scaled_height, zorder_base=1):
         """
         Render the frame with shadow and border.
