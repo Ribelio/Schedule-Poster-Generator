@@ -7,6 +7,9 @@ Contains schedule data, cover URLs, and visual settings.
 # SCHEDULE DATA
 # ============================================================================
 
+# Manga title for MangaDex API lookup
+MANGA_TITLE = "Choujin X"
+
 # List of dates and volume pairs
 schedule = [
     # ("November 15, 2025", [1]),
@@ -18,22 +21,11 @@ schedule = [
     ("December 27, 2025", [12, 13, 14])
 ]
 
-# URLs for volume covers
+# URLs for volume covers (manual overrides - will be merged with MangaDex results)
+# Leave empty to use only MangaDex, or specify manual URLs for specific volumes
 cover_urls = {
-    1: "https://m.media-amazon.com/images/I/41H1JFuv+0L.jpg",
-    2: "https://m.media-amazon.com/images/I/71Gj55-N1kL.jpg",
-    3: "https://m.media-amazon.com/images/I/71wLxeDsuUL.jpg",
-    4: "https://m.media-amazon.com/images/I/61xNxUCXEqL.jpg",
-    5: "https://m.media-amazon.com/images/I/71h0-rh4FhL.jpg",
-    6: "https://m.media-amazon.com/images/I/71s5Zu1-BzL.jpg",
-    7: "https://m.media-amazon.com/images/I/71PX3Euwa0L.jpg",
-    8: "https://m.media-amazon.com/images/I/61n17DEPKEL.jpg",
-    9: "https://m.media-amazon.com/images/I/71HN34iWcEL.jpg",
-    10: "https://m.media-amazon.com/images/I/710m+JUnVWL.jpg",
-    11: "https://m.media-amazon.com/images/I/81nZp9xd1-L.jpg",
-    12: "https://static.wikia.nocookie.net/choujin-x/images/a/a9/Volume_12.jpg", 
-    13: "https://static.wikia.nocookie.net/choujin-x/images/b/b6/Volume_13.png",   
-    14: "https://static.wikia.nocookie.net/choujin-x/images/a/a3/Volume_14.jpg"
+    # Manual overrides can be added here if needed
+    # Example: 1: "https://example.com/volume1.jpg"
 }
 
 # ============================================================================
@@ -90,7 +82,7 @@ STAGGER_PRESET = {
 }
 
 # Title settings
-TITLE_TEXT = "Choujin X Book Club Schedule"
+TITLE_TEXT = f"{MANGA_TITLE} Book Club Schedule"
 TITLE_FONTSIZE = 42
 TITLE_FONTWEIGHT = 'bold'
 TITLE_COLOR = 'white'
@@ -114,6 +106,6 @@ BACKGROUND_LINEART_COLOR = 'white'  # Color for the line art (if using monochrom
 
 # Output settings
 OUTPUT_DIR = "output/images"
-OUTPUT_FILENAME = "choujin_x_schedule.png"
+OUTPUT_FILENAME = f"{MANGA_TITLE}_schedule.png"
 DPI = 200
 

@@ -7,8 +7,9 @@ from matplotlib.patheffects import withStroke
 import numpy as np
 import os
 
+import config
 from config import (
-    schedule, cover_urls, ZOOM_FACTOR, VERTICAL_OFFSET,
+    schedule, cover_urls, MANGA_TITLE, ZOOM_FACTOR, VERTICAL_OFFSET,
     COLS, TITLE_ROW_HEIGHT, VERTICAL_PADDING, BOTTOM_MARGIN,
     HORIZONTAL_PADDING, COLUMN_SPACING, TITLE_TEXT, TITLE_FONTSIZE,
     TITLE_FONTWEIGHT, TITLE_COLOR, TITLE_FONTFAMILY, DATE_FONTSIZE,
@@ -17,6 +18,7 @@ from config import (
     BACKGROUND_LINEART_ENABLED, BACKGROUND_LINEART_PATH, BACKGROUND_LINEART_ALPHA,
     SHAPE_PRESET, STAGGER_PRESET
 )
+from manga_fetcher import MangaDexFetcher
 from image_utils import load_image, center_crop_zoom
 from geometry import calculate_layout_dimensions
 from frame import create_frame_from_preset
@@ -249,6 +251,26 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance, stagger
 
 def create_poster():
     """Main function to create and save the schedule poster."""
+    # Extract all unique volume numbers from schedule
+    unique_volumes = set()
+    for _, vols in schedule:
+        unique_volumes.update(vols)
+    
+    # Fetch covers from MangaDex API
+    print(f"\nFetching covers for {MANGA_TITLE}...")
+    fetcher = MangaDexFetcher()
+    mangadex_covers = fetcher.fetch_covers(MANGA_TITLE, unique_volumes)
+    
+    # Merge MangaDex results with manual overrides (manual takes precedence)
+    # Start with MangaDex results, then update with manual overrides
+    # This ensures manual overrides in config.cover_urls take precedence
+    # Update in place so the imported reference stays valid
+    merged_covers = {**mangadex_covers, **cover_urls}
+    config.cover_urls.clear()
+    config.cover_urls.update(merged_covers)
+    
+    print(f"Loaded {len(cover_urls)} cover URL(s)\n")
+    
     # Create frame instance from preset
     frame_instance = create_frame_from_preset(SHAPE_PRESET)
     
