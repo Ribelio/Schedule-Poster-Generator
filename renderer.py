@@ -63,8 +63,8 @@ def calculate_scale_factor(num_vols, frame_width, frame_spacing):
 
 def render_volume_image(ax, vol, vertices, clip_path, x_center, y_center):
     """Render the volume cover image within the frame."""
-    # Load and process image
-    img_pil = load_image(cover_urls.get(vol, ""))
+    # Load and process image (with volume number for caching)
+    img_pil = load_image(cover_urls.get(vol, ""), volume=vol)
     
     if img_pil is not None:
         # Apply center-crop-zoom to focus on character art
