@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QLabel, QPushButton, QDoubleSpinBox, QSpinBox,
     QComboBox, QLineEdit, QColorDialog, QCheckBox, QFileDialog
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from config import PosterConfig, schedule, cover_urls, config as default_config
@@ -28,6 +28,12 @@ class PosterEditor(QMainWindow):
         self.cover_data = {}
         self.widgets: Dict[str, Any] = {}
         
+        # Setup debounce timer for preview updates
+        self.preview_timer = QTimer()
+        self.preview_timer.setSingleShot(True)
+        self.preview_timer.timeout.connect(self.refresh_preview)
+        self.debounce_delay = 500  # 0.5 seconds in milliseconds
+        
         self.setWindowTitle("Schedule Poster Generator - Editor")
         self.setGeometry(100, 100, 1400, 900)
         
@@ -40,7 +46,7 @@ class PosterEditor(QMainWindow):
         # Setup UI
         self._setup_ui()
         
-        # Initial preview
+        # Initial preview (no debounce for initial load)
         self.refresh_preview()
     
     def _apply_dark_theme(self):
@@ -254,7 +260,7 @@ class PosterEditor(QMainWindow):
         """Add a string input widget."""
         widget = QLineEdit()
         widget.setText(str(getattr(self.config, field_name, "")))
-        widget.textChanged.connect(self.refresh_preview)
+        widget.textChanged.connect(self._trigger_preview_update)
         form_layout.addRow(label, widget)
         self.widgets[field_name] = widget
     
@@ -263,7 +269,7 @@ class PosterEditor(QMainWindow):
         widget = QSpinBox()
         widget.setRange(min_val, max_val)
         widget.setValue(getattr(self.config, field_name, min_val))
-        widget.valueChanged.connect(self.refresh_preview)
+        widget.valueChanged.connect(self._trigger_preview_update)
         form_layout.addRow(label, widget)
         self.widgets[field_name] = widget
     
@@ -296,7 +302,7 @@ class PosterEditor(QMainWindow):
         else:
             value = getattr(self.config, field_name, min_val)
         widget.setValue(value)
-        widget.valueChanged.connect(self.refresh_preview)
+        widget.valueChanged.connect(self._trigger_preview_update)
         form_layout.addRow(label, widget)
         self.widgets[field_name] = widget
     
@@ -304,7 +310,7 @@ class PosterEditor(QMainWindow):
         """Add a checkbox widget."""
         widget = QCheckBox()
         widget.setChecked(getattr(self.config, field_name, False))
-        widget.stateChanged.connect(self.refresh_preview)
+        widget.stateChanged.connect(self._trigger_preview_update)
         form_layout.addRow(label, widget)
         self.widgets[field_name] = widget
     
@@ -321,7 +327,7 @@ class PosterEditor(QMainWindow):
         else:
             value = getattr(self.config, field_name, "#ffffff")
         color_edit.setText(value)
-        color_edit.textChanged.connect(self.refresh_preview)
+        color_edit.textChanged.connect(self._trigger_preview_update)
         
         color_btn = QPushButton("🎨")
         color_btn.setMaximumWidth(40)
@@ -339,7 +345,7 @@ class PosterEditor(QMainWindow):
         widget.addItems(['parallelogram', 'rhombus', 'rectangle', 'hexagon'])
         current_type = self.config.shape_preset.get('type', 'parallelogram')
         widget.setCurrentText(current_type)
-        widget.currentTextChanged.connect(self.refresh_preview)
+        widget.currentTextChanged.connect(self._trigger_preview_update)
         form_layout.addRow("Shape Type", widget)
         self.widgets['shape_type'] = widget
     
@@ -349,7 +355,7 @@ class PosterEditor(QMainWindow):
         widget.addItems(['none', 'alternating', 'staircase'])
         current_type = self.config.stagger_preset.get('type', 'none')
         widget.setCurrentText(current_type)
-        widget.currentTextChanged.connect(self.refresh_preview)
+        widget.currentTextChanged.connect(self._trigger_preview_update)
         form_layout.addRow("Stagger Type", widget)
         self.widgets['stagger_type'] = widget
     
@@ -358,7 +364,7 @@ class PosterEditor(QMainWindow):
         widget = QComboBox()
         widget.addItems(['normal', 'bold', 'light'])
         widget.setCurrentText(self.config.title_fontweight)
-        widget.currentTextChanged.connect(self.refresh_preview)
+        widget.currentTextChanged.connect(self._trigger_preview_update)
         form_layout.addRow("Title Font Weight", widget)
         self.widgets['title_fontweight'] = widget
     
@@ -370,7 +376,7 @@ class PosterEditor(QMainWindow):
         
         file_edit = QLineEdit()
         file_edit.setText(getattr(self.config, field_name, ""))
-        file_edit.textChanged.connect(self.refresh_preview)
+        file_edit.textChanged.connect(self._trigger_preview_update)
         
         file_btn = QPushButton("📁")
         file_btn.setMaximumWidth(40)
@@ -438,6 +444,13 @@ class PosterEditor(QMainWindow):
         # Stagger preset
         self.config.stagger_preset['type'] = self.widgets['stagger_type'].currentText()
         self.config.stagger_preset['offset'] = self.widgets['stagger_offset'].value()
+    
+    def _trigger_preview_update(self):
+        """Trigger a debounced preview update."""
+        # Stop the timer if it's already running
+        self.preview_timer.stop()
+        # Start a new timer that will call refresh_preview after the delay
+        self.preview_timer.start(self.debounce_delay)
     
     def refresh_preview(self):
         """Update the preview image based on current widget values."""
