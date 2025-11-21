@@ -9,8 +9,10 @@ from urllib.request import urlopen, Request
 from urllib.parse import urlparse
 from PIL import Image
 
+from config import MANGA_TITLE
+
 # Cache directory for downloaded images
-CACHE_DIR = "output/images/covers"
+CACHE_DIR = f"output/images/covers/{MANGA_TITLE.lower().replace(' ', '_')}"
 
 
 def _get_cache_filename(url, volume=None):

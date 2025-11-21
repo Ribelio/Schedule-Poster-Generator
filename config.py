@@ -33,8 +33,8 @@ cover_urls = {
 # ============================================================================
 
 # Image processing settings
-ZOOM_FACTOR = 0.95  # Center-crop-zoom factor: Higher values = more zoom into center
-VERTICAL_OFFSET = -0.1  # Vertical offset for image positioning (positive = higher)
+ZOOM_FACTOR = 1.1  # Center-crop-zoom factor: Higher values = more zoom into center
+VERTICAL_OFFSET = -0.10  # Vertical offset for image positioning (positive = higher)
 
 # Layout settings
 COLS = 3  # Number of columns in the grid
@@ -54,13 +54,13 @@ COLUMN_SPACING = 0.5    # Spacing between columns
 # and update the create_frame_from_preset() factory function.
 SHAPE_PRESET = {
     'type': 'parallelogram',  # Shape type: 'parallelogram', 'rhombus', 'rectangle', 'hexagon', etc.
-    'width': 2.8,            # Frame width
-    'height': 3.5,            # Frame height
-    'spacing': 0.5,           # Space between frames in a row
-    'border_color': 'white',  # Frame border color
+    'width': 1.5,            # Frame width
+    'height': 2.5,            # Frame height
+    'spacing': 0.0,           # Space between frames in a row
+    'border_color': 'gold',  # Frame border color
     'shadow_alpha': 0.4,      # Shadow transparency (0.0-1.0)
     # Shape-specific parameters (add more as needed for different shapes)
-    'skew_angle': 15,         # degrees (for parallelogram only)
+    'skew_angle': -15,         # degrees (for parallelogram only)
     'rotation_angle': 0,      # degrees (for rhombus only, 0 = diamond pointing up)
 }
 
@@ -77,8 +77,8 @@ SKEW_ANGLE = SHAPE_PRESET['skew_angle']
 # Stagger strategy configuration
 # Controls vertical positioning of frames within a cell
 STAGGER_PRESET = {
-    'type': 'staircase',      # Stagger type: 'none', 'alternating', 'staircase'
-    'offset': 0.3,       # Vertical distance per step (in figure units)
+    'type': 'none',      # Stagger type: 'none', 'alternating', 'staircase'
+    'offset': 0.1,       # Vertical distance per step (in figure units)
 }
 
 # Title settings

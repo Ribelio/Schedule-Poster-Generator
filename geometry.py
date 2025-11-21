@@ -5,33 +5,6 @@ Geometry and calculation utilities for layout and shapes.
 import numpy as np
 
 
-def calculate_parallelogram_vertices(x_center, y_center, width, height, skew_angle):
-    """
-    Calculate the 4 corner points of a parallelogram.
-    
-    Args:
-        x_center, y_center: Center point of parallelogram
-        width: Width of the parallelogram
-        height: Height of the parallelogram
-        skew_angle: Skew angle in degrees (positive = right-leaning)
-    
-    Returns:
-        numpy array of shape (4, 2) with vertices in order:
-        [bottom_left, bottom_right, top_right, top_left]
-    """
-    half_w = width / 2
-    half_h = height / 2
-    skew_offset = half_h * np.tan(np.radians(skew_angle))
-    
-    vertices = np.array([
-        [x_center - half_w - skew_offset, y_center - half_h],  # Bottom Left
-        [x_center + half_w - skew_offset, y_center - half_h],  # Bottom Right
-        [x_center + half_w + skew_offset, y_center + half_h],  # Top Right
-        [x_center - half_w + skew_offset, y_center + half_h]   # Top Left
-    ])
-    
-    return vertices
-
 
 def calculate_max_item_width(schedule, frame_width, frame_spacing):
     """

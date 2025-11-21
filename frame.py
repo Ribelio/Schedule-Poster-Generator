@@ -194,6 +194,88 @@ class RhombusFrame(Frame):
         return vertices
 
 
+class RectangleFrame(Frame):
+    """
+    Rectangle-shaped frame.
+    """
+    
+    def __init__(self, width, height, spacing=0.5, border_color='white', shadow_alpha=0.4):
+        super().__init__(width, height, spacing, border_color, shadow_alpha)
+    
+    def calculate_vertices(self, x_center, y_center, scaled_width, scaled_height):
+        """
+        Calculate the 4 corner points of a rectangle.
+        
+        Args:
+            x_center, y_center: Center point of rectangle
+            scaled_width: Scaled width of the rectangle
+            scaled_height: Scaled height of the rectangle
+    
+        Returns:
+            numpy array of shape (4, 2) with vertices in order:
+            [bottom_left, bottom_right, top_right, top_left]
+        """
+        return np.array([
+            [x_center - scaled_width / 2, y_center - scaled_height / 2],  # Bottom Left
+            [x_center + scaled_width / 2, y_center - scaled_height / 2],  # Bottom Right
+            [x_center + scaled_width / 2, y_center + scaled_height / 2],  # Top Right
+            [x_center - scaled_width / 2, y_center + scaled_height / 2]   # Top Left
+        ])
+
+class HexagonFrame(Frame):
+    """
+    Hexagon-shaped frame.
+    """
+    
+    def __init__(self, width, height, spacing=0.5, border_color='white', shadow_alpha=0.4):
+        super().__init__(width, height, spacing, border_color, shadow_alpha)
+    
+    def calculate_vertices(self, x_center, y_center, scaled_width, scaled_height):
+        """
+        Calculate the 6 corner points of a regular hexagon (point-top orientation).
+        
+        For a regular hexagon with points at top/bottom:
+        - Top and bottom are single vertex points
+        - Left and right sides have flat edges (two vertices each)
+        - The width spans from leftmost to rightmost point
+        - The height spans from top point to bottom point
+        
+        In a regular hexagon with point-top orientation:
+        - The flat edges are at 60° angles from vertical
+        - The horizontal distance from center to flat edge = height * tan(30°) = height / sqrt(3)
+        - To fit within the given width, we use the minimum of (width/2) and (height/sqrt(3))
+        
+        Args:
+            x_center, y_center: Center point of hexagon
+            scaled_width: Scaled width of the hexagon (horizontal extent)
+            scaled_height: Scaled height of the hexagon (vertical extent)
+            
+        Returns:
+            numpy array of shape (6, 2) with vertices in counter-clockwise order:
+            [top_point, top_right, bottom_right, bottom_point, bottom_left, top_left]
+        """
+        half_h = scaled_height / 2
+        
+        # For a regular hexagon, the flat edges are at 60° angles
+        # The horizontal distance from center to flat edge = half_h * tan(30°) = half_h / sqrt(3)
+        # Use the minimum of half_width and the calculated regular hexagon width
+        sqrt3 = np.sqrt(3)
+        regular_hex_half_w = half_h / sqrt3
+        half_w = min(scaled_width / 2, regular_hex_half_w)
+        
+        # The vertical offset for the flat edge vertices
+        # In a regular hexagon, the flat edges are at half the height
+        flat_edge_y = half_h / 2
+        
+        return np.array([
+            [x_center, y_center + half_h],                    # Top Point
+            [x_center + half_w, y_center + flat_edge_y],      # Top Right
+            [x_center + half_w, y_center - flat_edge_y],      # Bottom Right
+            [x_center, y_center - half_h],                    # Bottom Point
+            [x_center - half_w, y_center - flat_edge_y],      # Bottom Left
+            [x_center - half_w, y_center + flat_edge_y]       # Top Left
+        ])
+
 def create_frame_from_preset(preset):
     """
     Factory function to create a Frame instance from a preset dictionary.
@@ -217,6 +299,10 @@ def create_frame_from_preset(preset):
     elif shape_type == 'rhombus':
         rotation_angle = preset.get('rotation_angle', 0)
         return RhombusFrame(width, height, spacing, rotation_angle, border_color, shadow_alpha)
+    elif shape_type == 'rectangle':
+        return RectangleFrame(width, height, spacing, border_color, shadow_alpha)
+    elif shape_type == 'hexagon':
+        return HexagonFrame(width, height, spacing, border_color, shadow_alpha)
     else:
         # Default to parallelogram if shape type not recognized
         skew_angle = preset.get('skew_angle', 15)
