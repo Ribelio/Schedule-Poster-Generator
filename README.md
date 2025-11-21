@@ -96,6 +96,7 @@ Schedule-Poster-Generator/
 ├── renderer.py              # Main rendering logic
 ├── vector_background.py     # Utility script to create high-contrast PNG stencil
 ├── frame.py                 # Frame classes for different shape types
+├── stagger.py               # Stagger strategy classes for vertical positioning
 ├── output/
 │   └── images/              # Generated images directory
 │       └── .gitkeep         # Preserves directory structure

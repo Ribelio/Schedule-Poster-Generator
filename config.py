@@ -49,8 +49,8 @@ COLS = 3  # Number of columns in the grid
 TITLE_ROW_HEIGHT = 3.0  # Height reserved for title row
 VERTICAL_PADDING = 1  # Padding between content rows
 BOTTOM_MARGIN = 1.0  # Bottom margin
-HORIZONTAL_PADDING = -1.0  # Horizontal padding on each side of cell
-COLUMN_SPACING = 0.2  # Spacing between columns
+HORIZONTAL_PADDING = 0.5  # Horizontal padding on each side of cell
+COLUMN_SPACING = 0.5    # Spacing between columns
 
 # ============================================================================
 # SHAPE PRESETS
@@ -77,6 +77,17 @@ FRAME_WIDTH = SHAPE_PRESET['width']
 FRAME_HEIGHT = SHAPE_PRESET['height']
 FRAME_SPACING = SHAPE_PRESET['spacing']
 SKEW_ANGLE = SHAPE_PRESET['skew_angle']
+
+# ============================================================================
+# STAGGER STRATEGY PRESETS
+# ============================================================================
+
+# Stagger strategy configuration
+# Controls vertical positioning of frames within a cell
+STAGGER_PRESET = {
+    'type': 'staircase',      # Stagger type: 'none', 'alternating', 'staircase'
+    'offset': 0.3,       # Vertical distance per step (in figure units)
+}
 
 # Title settings
 TITLE_TEXT = "Choujin X Book Club Schedule"

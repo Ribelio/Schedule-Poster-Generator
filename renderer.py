@@ -10,17 +10,17 @@ import os
 from config import (
     schedule, cover_urls, ZOOM_FACTOR, VERTICAL_OFFSET,
     COLS, TITLE_ROW_HEIGHT, VERTICAL_PADDING, BOTTOM_MARGIN,
-    HORIZONTAL_PADDING, COLUMN_SPACING, FRAME_WIDTH, FRAME_HEIGHT,
-    SKEW_ANGLE, FRAME_SPACING, TITLE_TEXT, TITLE_FONTSIZE,
+    HORIZONTAL_PADDING, COLUMN_SPACING, TITLE_TEXT, TITLE_FONTSIZE,
     TITLE_FONTWEIGHT, TITLE_COLOR, TITLE_FONTFAMILY, DATE_FONTSIZE,
-    VOLUME_FONTSIZE, TEXT_COLOR, BACKGROUND_COLOR, FRAME_BORDER_COLOR,
+    VOLUME_FONTSIZE, TEXT_COLOR, BACKGROUND_COLOR, 
     OUTPUT_DIR, OUTPUT_FILENAME, DPI,
     BACKGROUND_LINEART_ENABLED, BACKGROUND_LINEART_PATH, BACKGROUND_LINEART_ALPHA,
-    BACKGROUND_LINEART_COLOR, SHAPE_PRESET
+    SHAPE_PRESET, STAGGER_PRESET
 )
 from image_utils import load_image, center_crop_zoom
 from geometry import calculate_layout_dimensions
 from frame import create_frame_from_preset
+from stagger import create_stagger_from_preset
 from PIL import Image as PILImage
 
 
@@ -176,7 +176,7 @@ def render_background_lineart(ax, fig_width, fig_height):
         print(f"Warning: Failed to load background line art: {e}")
 
 
-def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance):
+def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance, stagger_strategy):
     """
     Render a single schedule item with date, volumes, and frames.
     
@@ -186,6 +186,7 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance):
         vols: List of volume numbers
         cell_x, cell_y: Cell center position
         frame_instance: Frame instance (from create_frame_from_preset)
+        stagger_strategy: StaggerStrategy instance for vertical positioning
     """
     # Extract shape parameters from frame instance
     frame_width = frame_instance.width
@@ -212,7 +213,19 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance):
     # Scaled dimensions (scale both width and height to maintain aspect ratio)
     scaled_frame_width = frame_width * scale_factor
     scaled_frame_height = frame_height * scale_factor
-    scaled_frame_spacing = frame_spacing * scale_factor
+    
+    # Calculate spacing: evenly distribute available space among gaps
+    # Reference width for 2 frames: 2 * frame_width + frame_spacing
+    reference_width = 2 * frame_width + frame_spacing
+    total_scaled_frames_width = num_vols * scaled_frame_width
+    num_gaps = num_vols - 1
+    
+    if num_gaps > 0:
+        # Calculate spacing to evenly distribute remaining space
+        available_space_for_gaps = reference_width - total_scaled_frames_width
+        scaled_frame_spacing = available_space_for_gaps / num_gaps
+    else:
+        scaled_frame_spacing = 0
     
     # Draw frames for each volume
     for j, vol in enumerate(vols):
@@ -220,7 +233,10 @@ def render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance):
         total_width = num_vols * scaled_frame_width + (num_vols - 1) * scaled_frame_spacing
         start_x = cell_x - total_width / 2
         x_center = start_x + j * (scaled_frame_width + scaled_frame_spacing) + scaled_frame_width / 2
-        y_center = cell_y
+        
+        # Apply stagger strategy to calculate vertical offset
+        y_offset = stagger_strategy.calculate_offset(j, num_vols)
+        y_center = cell_y + y_offset
         
         # Render frame using Frame class
         vertices, clip_path = frame_instance.render(
@@ -235,6 +251,9 @@ def create_poster():
     """Main function to create and save the schedule poster."""
     # Create frame instance from preset
     frame_instance = create_frame_from_preset(SHAPE_PRESET)
+    
+    # Create stagger strategy from preset
+    stagger_strategy = create_stagger_from_preset(STAGGER_PRESET)
     
     # Calculate layout dimensions
     fig_width, fig_height, cell_width, cell_height, min_cell_width, content_rows = \
@@ -275,8 +294,8 @@ def create_poster():
         y_offset = row * (cell_height + VERTICAL_PADDING)
         cell_y = start_y - y_offset - cell_height / 2
         
-        # Render the schedule item using frame instance
-        render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance)
+        # Render the schedule item using frame instance and stagger strategy
+        render_schedule_item(ax, date, vols, cell_x, cell_y, frame_instance, stagger_strategy)
     
     # Ensure output directory exists
     os.makedirs(OUTPUT_DIR, exist_ok=True)
