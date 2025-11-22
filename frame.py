@@ -3,8 +3,6 @@ Frame classes for rendering volume frames in different shapes.
 """
 
 import numpy as np
-from matplotlib.patches import Polygon
-from matplotlib.path import Path
 from PIL import Image, ImageDraw
 
 
@@ -67,45 +65,30 @@ class Frame:
         
         return width, height
     
-    def render(self, ax, x_center, y_center, scaled_width, scaled_height, zorder_base=1):
-        """
-        Render the frame with shadow and border.
-        
-        Args:
-            ax: Matplotlib axes
-            x_center, y_center: Center position of the frame
-            scaled_width: Scaled width of the frame
-            scaled_height: Scaled height of the frame
-            zorder_base: Base z-order for rendering
-            
-        Returns:
-            tuple: (vertices, clip_path) for use in image clipping
-        """
-        # Calculate vertices for this shape
-        vertices = self.calculate_vertices(x_center, y_center, scaled_width, scaled_height)
-        
-        # Create clipping path
-        clip_path = Path(vertices)
-        
-        # Draw drop shadow
-        shadow_vertices = vertices + np.array([self.shadow_offset, -self.shadow_offset])
-        shadow = Polygon(shadow_vertices, closed=True,
-                        facecolor='black', edgecolor='none',
-                        alpha=self.shadow_alpha, zorder=zorder_base)
-        ax.add_patch(shadow)
-        
-        # Draw main frame border
-        frame = Polygon(vertices, closed=True,
-                       edgecolor=self.border_color, linewidth=4,
-                       facecolor='none', zorder=zorder_base + 3)
-        ax.add_patch(frame)
-        
-        return vertices, clip_path
     
     def render_to_pil(self, canvas_width: int, canvas_height: int, 
                       x_center: float, y_center: float, 
                       scaled_width: float, scaled_height: float,
                       pixels_per_unit: float) -> tuple:
+        """
+        Render the frame to PIL images (shadow and border as separate layers).
+        
+        Args:
+            canvas_width: Canvas width in pixels
+            canvas_height: Canvas height in pixels
+            x_center: X center position in figure units
+            y_center: Y center position in figure units
+            scaled_width: Scaled width in figure units
+            scaled_height: Scaled height in figure units
+            pixels_per_unit: Conversion factor from figure units to pixels
+            
+        Returns:
+            tuple: (shadow_image, border_image, vertices, mask_image)
+            - shadow_image: PIL Image with shadow (RGBA)
+            - border_image: PIL Image with border (RGBA)
+            - vertices: numpy array of vertices
+            - mask_image: PIL Image with white mask shape (RGBA)
+        """
         """
         Render the frame to PIL images (shadow and border as separate layers).
         

@@ -1,6 +1,6 @@
 """
 Rendering logic for creating the schedule poster using PIL.
-Exports to OpenRaster (.ora) format for GIMP/Krita compatibility.
+Pure Python + Pillow rendering pipeline.
 """
 
 import io
@@ -13,7 +13,6 @@ from config import config
 from image_utils import load_image, center_crop_zoom
 from frame import create_frame_from_preset
 from stagger import create_stagger_from_preset
-from ora_writer import OpenRasterWriter
 
 
 def format_volume_text(vols):
@@ -359,175 +358,6 @@ def render_volume_image_layer(canvas_width: int, canvas_height: int,
     return canvas_img
 
 
-def render_poster_to_ora(poster_config, cover_data, schedule, output_path: str):
-    """
-    Render the poster and export as OpenRaster (.ora) file.
-    
-    Args:
-        poster_config: PosterConfig instance
-        cover_data: Dictionary mapping volume numbers to cover URLs
-        schedule: List of (date, volumes) tuples
-        output_path: Output file path (.ora)
-    """
-    # Calculate dimensions
-    fig_width, fig_height, cell_width, cell_height, min_cell_width, content_rows = \
-        calculate_layout_dimensions(schedule, poster_config)
-    
-    # Convert to pixels (figure units are in inches, so multiply by DPI)
-    pixels_per_unit = poster_config.dpi  # 1 inch = DPI pixels
-    canvas_width = int(fig_width * pixels_per_unit)
-    canvas_height = int(fig_height * pixels_per_unit)
-    
-    # Create ORA writer
-    ora_writer = OpenRasterWriter(canvas_width, canvas_height)
-    
-    # Create frame and stagger instances
-    frame_instance = create_frame_from_preset(poster_config.shape_preset)
-    stagger_strategy = create_stagger_from_preset(poster_config.stagger_preset)
-    
-    # Background color layer
-    bg_color = hex_to_rgb(poster_config.background_color)
-    bg_img = Image.new('RGB', (canvas_width, canvas_height), bg_color)
-    ora_writer.add_layer(bg_img, "Background Color", x=0, y=0, opacity=1.0)
-    
-    # Background line art layer
-    lineart_img = render_background_lineart_layer(canvas_width, canvas_height, 
-                                                  poster_config, pixels_per_unit)
-    if lineart_img:
-        # Alpha is already applied in the image, so use opacity 1.0
-        ora_writer.add_layer(lineart_img, "Line Art", x=0, y=0, opacity=1.0)
-    
-    # Title layer
-    title_y = fig_height - poster_config.title_row_height / 2
-    title_img = render_text_layer(
-        canvas_width, canvas_height, poster_config.title_text,
-        fig_width / 2, title_y, poster_config.title_fontsize,
-        poster_config.title_color, poster_config.title_fontfamily,
-        bold=(poster_config.title_fontweight == 'bold'),
-        outline_color=poster_config.background_color, outline_width=3,
-        pixels_per_unit=pixels_per_unit
-    )
-    ora_writer.add_layer(title_img, "Title", x=0, y=0, opacity=1.0)
-    
-    # Calculate starting position
-    start_y = fig_height - poster_config.title_row_height
-    
-    # Render schedule items
-    for idx, (date, vols) in enumerate(schedule):
-        row = idx // poster_config.cols
-        col = idx % poster_config.cols
-        
-        # Calculate cell position
-        cell_x = col * (cell_width + poster_config.column_spacing) + cell_width / 2
-        y_offset = row * (cell_height + poster_config.vertical_padding)
-        cell_y = start_y - y_offset - cell_height / 2
-        
-        # Start row group
-        row_name = f"Row {row + 1}"
-        ora_writer.start_group(row_name, opacity=1.0)
-        
-        # Start item group
-        item_name = f"Item {idx + 1} ({date})"
-        ora_writer.start_group(item_name, opacity=1.0)
-        
-        # Date text layer
-        date_y = cell_y + frame_instance.height / 2 + 0.4
-        date_img = render_text_layer(
-            canvas_width, canvas_height, date,
-            cell_x, date_y, poster_config.date_fontsize,
-            poster_config.text_color, poster_config.title_fontfamily,
-            bold=True, outline_color=poster_config.background_color,
-            outline_width=2, pixels_per_unit=pixels_per_unit
-        )
-        ora_writer.add_layer(date_img, f"{date} - Date", x=0, y=0, opacity=1.0)
-        
-        # Volume text layer
-        vol_text = format_volume_text(vols)
-        vol_y = cell_y + frame_instance.height / 2 + 0.15
-        vol_img = render_text_layer(
-            canvas_width, canvas_height, vol_text,
-            cell_x, vol_y, poster_config.volume_fontsize,
-            poster_config.text_color, 'sans-serif',
-            outline_color=poster_config.background_color,
-            outline_width=2, pixels_per_unit=pixels_per_unit
-        )
-        ora_writer.add_layer(vol_img, f"{date} - Volume Text", x=0, y=0, opacity=1.0)
-        
-        # Calculate scale factor
-        num_vols = len(vols)
-        scale_factor = calculate_scale_factor(num_vols, frame_instance.width, frame_instance.spacing)
-        scaled_frame_width = frame_instance.width * scale_factor
-        scaled_frame_height = frame_instance.height * scale_factor
-        
-        # Calculate spacing
-        reference_width = 2 * frame_instance.width + frame_instance.spacing
-        total_scaled_frames_width = num_vols * scaled_frame_width
-        num_gaps = num_vols - 1
-        if num_gaps > 0:
-            available_space_for_gaps = reference_width - total_scaled_frames_width
-            scaled_frame_spacing = available_space_for_gaps / num_gaps
-        else:
-            scaled_frame_spacing = 0
-        
-        # Render frames for each volume
-        for j, vol in enumerate(vols):
-            # Position frames
-            total_width = num_vols * scaled_frame_width + (num_vols - 1) * scaled_frame_spacing
-            start_x = cell_x - total_width / 2
-            x_center = start_x + j * (scaled_frame_width + scaled_frame_spacing) + scaled_frame_width / 2
-            
-            # Apply stagger
-            y_offset_stagger = stagger_strategy.calculate_offset(j, num_vols)
-            y_center = cell_y + y_offset_stagger
-            
-            # Start volume group
-            vol_group_name = f"Volume {vol}"
-            ora_writer.start_group(vol_group_name, opacity=1.0)
-            
-            # Render frame to PIL
-            shadow_img, border_img, vertices, mask_img = frame_instance.render_to_pil(
-                canvas_width, canvas_height, x_center, y_center,
-                scaled_frame_width, scaled_frame_height, pixels_per_unit
-            )
-            
-            # Add shadow layer
-            ora_writer.add_layer(shadow_img, f"Vol {vol} - Shadow", x=0, y=0, opacity=1.0)
-            
-            # Add frame border layer
-            ora_writer.add_layer(border_img, f"Vol {vol} - Frame Border", x=0, y=0, opacity=1.0)
-            
-            # Add mask group (cover image + mask)
-            cover_img = render_volume_image_layer(
-                canvas_width, canvas_height, vol, vertices,
-                x_center, y_center, poster_config, frame_instance,
-                pixels_per_unit, cover_data
-            )
-            
-            if cover_img:
-                ora_writer.add_mask_group(
-                    f"Vol {vol} - Mask Group",
-                    mask_img, cover_img,
-                    mask_x=0, mask_y=0,
-                    content_x=0, content_y=0,
-                    opacity=1.0
-                )
-            else:
-                # Fallback: just add the mask shape
-                ora_writer.add_layer(mask_img, f"Vol {vol} - Mask (No Image)", 
-                                   x=0, y=0, opacity=1.0)
-            
-            # End volume group
-            ora_writer.end_group()
-        
-        # End item group
-        ora_writer.end_group()
-        
-        # End row group
-        ora_writer.end_group()
-    
-    # Save ORA file
-    ora_writer.save(output_path)
-    print(f"Saved OpenRaster file to {output_path}")
 
 
 def composite_flat(canvas_width: int, canvas_height: int, layers: List[Image.Image]) -> Image.Image:
@@ -559,7 +389,7 @@ def render_poster_to_buffer(poster_config, cover_data, schedule, format='png'):
         poster_config: PosterConfig instance
         cover_data: Dictionary mapping volume numbers to cover URLs
         schedule: List of (date, volumes) tuples
-        format: Output format ('png' or 'ora'), defaults to 'png'
+        format: Output format ('png'), defaults to 'png'
         
     Returns:
         BytesIO object containing the rendered image
@@ -727,7 +557,7 @@ def create_poster(poster_config=None, output_path=None, format=None):
     Args:
         poster_config: PosterConfig instance (uses default if None)
         output_path: Optional custom output path (uses default if None)
-        format: Optional format ('png', 'svg', or 'ora'), auto-detected from extension if None
+        format: Optional format ('png'), auto-detected from extension if None
     
     Returns:
         Path to saved file
@@ -753,33 +583,19 @@ def create_poster(poster_config=None, output_path=None, format=None):
     # Determine output path and format
     if output_path is None:
         os.makedirs(poster_config.output_dir, exist_ok=True)
-        if format == 'ora':
-            filename = poster_config.output_filename.replace('.png', '.ora')
-        elif format == 'svg':
-            filename = poster_config.output_filename.replace('.png', '.svg')
-        else:
-            filename = poster_config.output_filename
+        filename = poster_config.output_filename
         output_path = os.path.join(poster_config.output_dir, filename)
     
-    # Auto-detect format from extension
+    # Auto-detect format from extension (default to PNG)
     if format is None:
-        if output_path.lower().endswith('.ora'):
-            format = 'ora'
-        elif output_path.lower().endswith('.svg'):
-            format = 'svg'
-        else:
-            format = 'png'
+        format = 'png'
     
-    # Render based on format
-    if format == 'ora':
-        render_poster_to_ora(poster_config, merged_covers, schedule, output_path)
-    else:
-        # For PNG/SVG, use buffer method (SVG not yet implemented in PIL version)
-        buffer = render_poster_to_buffer(poster_config, merged_covers, schedule, format='png')
-        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
-        with open(output_path, 'wb') as f:
-            f.write(buffer.getvalue())
-        print(f"Saved as {output_path}")
+    # Render to PNG
+    buffer = render_poster_to_buffer(poster_config, merged_covers, schedule, format='png')
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else '.', exist_ok=True)
+    with open(output_path, 'wb') as f:
+        f.write(buffer.getvalue())
+    print(f"Saved as {output_path}")
     
     # Open the file (Windows specific)
     try:

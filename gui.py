@@ -15,7 +15,7 @@ from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from config import PosterConfig, schedule, cover_urls, config as default_config
-from renderer import render_poster_to_buffer, create_poster
+from renderer import render_poster_to_buffer
 from manga_fetcher import MangaDexFetcher
 
 
