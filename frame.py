@@ -5,6 +5,7 @@ Frame classes for rendering volume frames in different shapes.
 import numpy as np
 from matplotlib.patches import Polygon
 from matplotlib.path import Path
+from PIL import Image, ImageDraw
 
 
 class Frame:
@@ -100,6 +101,102 @@ class Frame:
         ax.add_patch(frame)
         
         return vertices, clip_path
+    
+    def render_to_pil(self, canvas_width: int, canvas_height: int, 
+                      x_center: float, y_center: float, 
+                      scaled_width: float, scaled_height: float,
+                      pixels_per_unit: float) -> tuple:
+        """
+        Render the frame to PIL images (shadow and border as separate layers).
+        
+        Args:
+            canvas_width: Canvas width in pixels
+            canvas_height: Canvas height in pixels
+            x_center: X center position in figure units
+            y_center: Y center position in figure units
+            scaled_width: Scaled width in figure units
+            scaled_height: Scaled height in figure units
+            pixels_per_unit: Conversion factor from figure units to pixels
+            
+        Returns:
+            tuple: (shadow_image, border_image, vertices, mask_image)
+            - shadow_image: PIL Image with shadow (RGBA)
+            - border_image: PIL Image with border (RGBA)
+            - vertices: numpy array of vertices
+            - mask_image: PIL Image with white mask shape (RGBA)
+        """
+        # Calculate vertices
+        vertices = self.calculate_vertices(x_center, y_center, scaled_width, scaled_height)
+        
+        # Convert vertices to pixel coordinates
+        # Note: PIL uses top-left origin, so we need to flip Y
+        vertices_px = vertices.copy()
+        vertices_px[:, 0] = vertices_px[:, 0] * pixels_per_unit
+        vertices_px[:, 1] = canvas_height - (vertices_px[:, 1] * pixels_per_unit)  # Flip Y
+        
+        # Create shadow vertices
+        shadow_offset_px = self.shadow_offset * pixels_per_unit
+        shadow_vertices_px = vertices_px.copy()
+        shadow_vertices_px[:, 0] += shadow_offset_px  # Shadow offset to the right
+        shadow_vertices_px[:, 1] += shadow_offset_px  # Shadow offset down (in PIL: Y increases downward)
+        
+        # Create images
+        shadow_img = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+        border_img = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+        mask_img = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+        
+        shadow_draw = ImageDraw.Draw(shadow_img)
+        border_draw = ImageDraw.Draw(border_img)
+        mask_draw = ImageDraw.Draw(mask_img)
+        
+        # Convert vertices to tuples for PIL
+        shadow_points = [tuple(p) for p in shadow_vertices_px]
+        border_points = [tuple(p) for p in vertices_px]
+        mask_points = [tuple(p) for p in vertices_px]
+        
+        # Draw shadow
+        shadow_alpha = int(255 * self.shadow_alpha)
+        shadow_draw.polygon(shadow_points, fill=(0, 0, 0, shadow_alpha))
+        
+        # Draw border as outline only (thin stroke around the shape)
+        # Border width is in points (1/72 inch), so convert to pixels
+        # Original matplotlib used linewidth=4 (points)
+        border_width_points = 4
+        border_width = int(border_width_points * pixels_per_unit / 72.0)
+        border_color_rgb = self._hex_to_rgb(self.border_color)
+        
+        # Draw outline by connecting vertices with lines
+        # This creates a clean outline around the shape
+        if len(border_points) >= 2:
+            for i in range(len(border_points)):
+                p1 = border_points[i]
+                p2 = border_points[(i + 1) % len(border_points)]
+                border_draw.line([p1, p2], fill=border_color_rgb + (255,), width=border_width)
+        
+        # Draw mask (white filled shape)
+        mask_draw.polygon(mask_points, fill=(255, 255, 255, 255))
+        
+        return shadow_img, border_img, vertices, mask_img
+    
+    def _hex_to_rgb(self, hex_color: str) -> tuple:
+        """Convert hex color to RGB tuple."""
+        hex_color = hex_color.lstrip('#')
+        if len(hex_color) == 6:
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        elif len(hex_color) == 3:
+            return tuple(int(c*2, 16) for c in hex_color)
+        else:
+            # Try to parse named colors
+            color_map = {
+                'white': (255, 255, 255),
+                'black': (0, 0, 0),
+                'gold': (255, 215, 0),
+                'yellow': (255, 255, 0),
+                'red': (255, 0, 0),
+                'green': (0, 255, 0),
+                'blue': (0, 0, 255),
+            }
+            return color_map.get(hex_color.lower(), (255, 255, 255))
 
 
 class ParallelogramFrame(Frame):
