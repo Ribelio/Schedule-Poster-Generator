@@ -3,7 +3,7 @@ Simple utility to create a high-contrast PNG stencil from an image.
 Uses PIL for image processing - no vectorization needed.
 """
 
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance
 import ssl
 import os
 from urllib.request import urlopen, Request

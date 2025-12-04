@@ -8,7 +8,6 @@ from matplotlib.patheffects import withStroke
 import numpy as np
 import os
 
-from config import config
 from image_utils import load_image, center_crop_zoom
 from frame import create_frame_from_preset
 from stagger import create_stagger_from_preset
@@ -452,7 +451,7 @@ def create_poster(poster_config=None, output_path=None, format=None):
     # Open the image (Windows specific)
     try:
         os.startfile(output_path)
-    except:
+    except Exception:
         pass
     
     return output_path

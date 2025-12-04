@@ -68,7 +68,7 @@ def load_image(url, volume=None):
             # If cached file is corrupted, delete it and re-download
             try:
                 os.remove(cache_path)
-            except:
+            except OSError:
                 pass
     
     # Download image if not in cache

@@ -3,7 +3,6 @@ GUI editor for the Schedule Poster Generator using PySide6.
 """
 
 import sys
-from io import BytesIO
 from typing import Dict, Any
 
 from PySide6.QtWidgets import (
@@ -11,7 +10,7 @@ from PySide6.QtWidgets import (
     QScrollArea, QLabel, QPushButton, QDoubleSpinBox, QSpinBox,
     QComboBox, QLineEdit, QColorDialog, QCheckBox, QFileDialog
 )
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from config import PosterConfig, schedule, cover_urls, config as default_config
