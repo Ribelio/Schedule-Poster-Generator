@@ -1,0 +1,4 @@
+detached-environments = 'C:\Users\Public\Public Code\VIRTUALVENVS'
+
+[shell]
+change-ps1 = false
