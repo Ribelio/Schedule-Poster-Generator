@@ -14,7 +14,7 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from config import PosterConfig, schedule, cover_urls, config as default_config
-from renderer import render_poster_to_buffer, create_poster
+from renderer import render_poster_to_buffer
 from manga_fetcher import MangaDexFetcher
 
 
@@ -605,27 +605,34 @@ class PosterEditor(QMainWindow):
             self.widgets['stagger_offset'].setValue(self.config.stagger_preset.get('offset', 0.1))
     
     def _export_to_disk(self):
-        """Export the current poster to disk."""
+        """Export the current poster to disk as PNG."""
         try:
+            import os
             self._update_config_from_widgets()
             
-            # Get file path with format selection
+            # Get file path (default to PNG)
+            default_filename = self.config.output_filename
             file_path, selected_filter = QFileDialog.getSaveFileName(
-                self, "Save Poster", self.config.output_filename,
-                "Images (*.png *.svg);;PNG Files (*.png);;SVG Files (*.svg);;All Files (*)"
+                self, "Save Poster", default_filename,
+                "PNG Files (*.png);;All Files (*)"
             )
             
             if file_path:
-                # Determine format from extension
-                if file_path.lower().endswith('.svg'):
-                    output_path = create_poster(self.config, output_path=file_path, format='svg')
-                else:
-                    # Default to PNG
-                    if not file_path.lower().endswith('.png'):
-                        file_path += '.png'
-                    output_path = create_poster(self.config, output_path=file_path, format='png')
+                # Ensure .png extension
+                if not file_path.lower().endswith('.png'):
+                    file_path += '.png'
                 
-                self.preview_label.setText(f"Saved to:\n{output_path}")
+                # Render to buffer and save
+                buffer = render_poster_to_buffer(self.config, self.cover_data, schedule, format='png')
+                
+                # Ensure output directory exists
+                os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
+                
+                # Save to disk
+                with open(file_path, 'wb') as f:
+                    f.write(buffer.getvalue())
+                
+                self.preview_label.setText(f"Saved to:\n{file_path}")
         except Exception as e:
             self.preview_label.setText(f"Export error: {str(e)}")
             print(f"Export error: {e}")
