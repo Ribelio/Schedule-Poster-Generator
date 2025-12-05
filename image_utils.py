@@ -9,39 +9,54 @@ from urllib.request import urlopen, Request
 from urllib.parse import urlparse
 from PIL import Image
 
-from config import MANGA_TITLE
+def _get_cache_dir(manga_title):
+    """
+    Get the cache directory for a manga title.
+    
+    Args:
+        manga_title: Manga title string
+        
+    Returns:
+        Cache directory path
+    """
+    cache_dir = f"output/images/covers/{manga_title.lower().replace(' ', '_')}"
+    os.makedirs(cache_dir, exist_ok=True)
+    return cache_dir
 
-# Cache directory for downloaded images
-CACHE_DIR = f"output/images/covers/{MANGA_TITLE.lower().replace(' ', '_')}"
 
-
-def _get_cache_filename(url, volume=None):
+def _get_cache_filename(url, volume=None, manga_title=None):
     """
     Generate a cache filename for an image.
 
     Args:
         url: URL of the image
         volume: Optional volume number to use as filename
+        manga_title: Manga title for cache directory (required)
 
     Returns:
         Cache file path
     """
-    os.makedirs(CACHE_DIR, exist_ok=True)
+    if not manga_title:
+        # Fallback to default if not provided
+        from config import MANGA_TITLE
+        manga_title = MANGA_TITLE
+    
+    cache_dir = _get_cache_dir(manga_title)
 
     if volume is not None:
         # Use volume number as filename, preserve original extension
         parsed_url = urlparse(url)
         ext = os.path.splitext(parsed_url.path)[1] or ".jpg"
-        return os.path.join(CACHE_DIR, f"volume_{volume}{ext}")
+        return os.path.join(cache_dir, f"volume_{volume}{ext}")
     else:
         # Use URL hash as filename
         url_hash = hashlib.md5(url.encode()).hexdigest()
         parsed_url = urlparse(url)
         ext = os.path.splitext(parsed_url.path)[1] or ".jpg"
-        return os.path.join(CACHE_DIR, f"{url_hash}{ext}")
+        return os.path.join(cache_dir, f"{url_hash}{ext}")
 
 
-def load_image(url, volume=None):
+def load_image(url, volume=None, manga_title=None):
     """
     Load image from URL or local cache and return as PIL Image.
     Downloads and caches the image if not already cached.
@@ -49,6 +64,7 @@ def load_image(url, volume=None):
     Args:
         url: URL of the image to load
         volume: Optional volume number for better cache filename
+        manga_title: Manga title for cache directory (required for proper caching)
 
     Returns:
         PIL Image object or None if loading fails
@@ -57,7 +73,7 @@ def load_image(url, volume=None):
         return None
 
     # Get cache filename
-    cache_path = _get_cache_filename(url, volume)
+    cache_path = _get_cache_filename(url, volume, manga_title)
 
     # Try to load from cache first
     if os.path.exists(cache_path):

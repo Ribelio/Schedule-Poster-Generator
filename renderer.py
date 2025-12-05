@@ -361,7 +361,7 @@ def render_volume_image_layer(
         PIL Image with the cover image, or None if image fails to load
     """
     # Load image
-    img_pil = load_image(cover_data.get(vol, ""), volume=vol)
+    img_pil = load_image(cover_data.get(vol, ""), volume=vol, manga_title=config.manga_title)
 
     if img_pil is None:
         return None

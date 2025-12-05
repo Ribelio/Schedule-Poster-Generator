@@ -29,6 +29,7 @@ class SettingsPanel(QWidget):
     configChanged = Signal()  # Emitted when any field changes
     scheduleChanged = Signal()  # Re-emitted from schedule widget
     fetchCoversRequested = Signal()  # Re-emitted
+    titleConfirmed = Signal()  # Emitted when manga title is confirmed
     savePresetRequested = Signal()
     loadPresetRequested = Signal()
     exportRequested = Signal()
@@ -90,8 +91,8 @@ class SettingsPanel(QWidget):
         return toolbar
 
     def _create_form_widgets(self):
-        # Manga Title
-        self._add_string_widget("manga_title", "Manga Title")
+        # Manga Title with confirm button
+        self._add_title_widget_with_confirm()
 
         # Schedule Widget (Custom)
         self.schedule_widget = ScheduleWidget()
@@ -112,6 +113,11 @@ class SettingsPanel(QWidget):
         self._add_float_widget("title_row_height", "Title Row Height", 0.5, 10.0, 0.1)
         self._add_float_widget("vertical_padding", "Vertical Padding", 0.0, 5.0, 0.1)
         self._add_float_widget("bottom_margin", "Bottom Margin", 0.0, 5.0, 0.1)
+        
+        # Row heights display
+        self.row_heights_label = QLabel("Row Heights: Calculating...")
+        self.row_heights_label.setStyleSheet("color: #888; font-style: italic;")
+        self.form_layout.addRow("", self.row_heights_label)
         self._add_float_widget(
             "horizontal_padding", "Horizontal Padding", 0.0, 5.0, 0.1
         )
@@ -199,6 +205,24 @@ class SettingsPanel(QWidget):
         self.widgets[name] = widget
         self.form_layout.addRow(label, widget)
 
+    def _add_title_widget_with_confirm(self):
+        """Add manga title widget with a confirm button."""
+        widget = QLineEdit()
+        widget.setText(getattr(self.config, "manga_title", ""))
+        # Don't auto-trigger on text change for title
+        self.widgets["manga_title"] = widget
+        
+        confirm_btn = QPushButton("✓")
+        confirm_btn.setMaximumWidth(40)
+        confirm_btn.setToolTip("Confirm and fetch covers for this title")
+        confirm_btn.clicked.connect(self.titleConfirmed.emit)
+        
+        layout = QHBoxLayout()
+        layout.addWidget(widget)
+        layout.addWidget(confirm_btn)
+        
+        self.form_layout.addRow("Manga Title", layout)
+    
     def _add_string_widget(self, name, label):
         widget = QLineEdit()
         widget.setText(getattr(self.config, name, ""))
@@ -270,6 +294,28 @@ class SettingsPanel(QWidget):
             line_edit.setText(path)
 
     # --- Data Sync ---
+    def update_row_heights_display(self, schedule):
+        """Update the row heights display based on current schedule and config."""
+        try:
+            from renderer import calculate_layout_dimensions
+            _, _, _, cell_height, _, content_rows = calculate_layout_dimensions(schedule, self.config)
+            
+            # Each row has the same cell_height
+            # Format display - show up to 3 rows or all if less than 3
+            if content_rows == 0:
+                heights_str = "No rows"
+            elif content_rows <= 3:
+                row_labels = [f"Row {i+1}: {cell_height:.2f}\"" for i in range(content_rows)]
+                heights_str = ", ".join(row_labels)
+            else:
+                # Show first 3 rows with indication of total
+                first_three = ", ".join([f"Row {i+1}: {cell_height:.2f}\"" for i in range(3)])
+                heights_str = f"{first_three} ... ({content_rows} rows total, all {cell_height:.2f}\")"
+            
+            self.row_heights_label.setText(f"Row Heights: {heights_str}")
+        except Exception as e:
+            self.row_heights_label.setText(f"Row Heights: Error - {str(e)}")
+    
     def update_config_from_widgets(self):
         """Update self.config based on widget values."""
         c = self.config
