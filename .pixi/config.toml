@@ -1,4 +1,7 @@
-detached-environments = 'C:\Users\Public\Public Code\VIRTUALVENVS'
+detached-environments = false
 
 [shell]
 change-ps1 = false
+
+[experimental]
+use-environment-activation-cache = true

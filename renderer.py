@@ -138,21 +138,21 @@ def get_font(fontfamily: str, size: int, bold: bool = False):
             if os.path.exists(path):
                 try:
                     return ImageFont.truetype(path, size)
-                except:
+                except OSError:
                     continue
         
         # Try system font lookup
         try:
             return ImageFont.truetype(fontfamily, size)
-        except:
+        except OSError:
             pass
-    except:
+    except Exception:
         pass
     
     # Fallback to default font
     try:
         return ImageFont.truetype("arial.ttf", size)
-    except:
+    except OSError:
         return ImageFont.load_default()
 
 
