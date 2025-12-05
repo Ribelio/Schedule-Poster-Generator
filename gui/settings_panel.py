@@ -187,7 +187,7 @@ class SettingsPanel(QWidget):
             if not name.startswith("shape_") and not name.startswith("stagger_")
             else 0
         )
-        widget.valueChanged.connect(self.configChanged.emit)
+        widget.valueChanged.connect(lambda _: self.configChanged.emit())
         self.widgets[name] = widget
         self.form_layout.addRow(label, widget)
 
@@ -195,14 +195,14 @@ class SettingsPanel(QWidget):
         widget = QSpinBox()
         widget.setRange(min_val, max_val)
         widget.setValue(getattr(self.config, name, 0))
-        widget.valueChanged.connect(self.configChanged.emit)
+        widget.valueChanged.connect(lambda _: self.configChanged.emit())
         self.widgets[name] = widget
         self.form_layout.addRow(label, widget)
 
     def _add_string_widget(self, name, label):
         widget = QLineEdit()
         widget.setText(getattr(self.config, name, ""))
-        widget.textChanged.connect(self.configChanged.emit)
+        widget.textChanged.connect(lambda _: self.configChanged.emit())
         self.widgets[name] = widget
         self.form_layout.addRow(label, widget)
 
@@ -214,7 +214,7 @@ class SettingsPanel(QWidget):
                 name.replace("shape_", ""), "#ffffff"
             )  # Simplified logic for now
         widget.setText(val)
-        widget.textChanged.connect(self.configChanged.emit)
+        widget.textChanged.connect(lambda _: self.configChanged.emit())
 
         btn = QPushButton("🎨")
         btn.setMaximumWidth(40)
@@ -235,21 +235,21 @@ class SettingsPanel(QWidget):
     def _add_combo_widget(self, name, label, options, default):
         widget = QComboBox()
         widget.addItems(options)
-        widget.currentTextChanged.connect(self.configChanged.emit)
+        widget.currentTextChanged.connect(lambda _: self.configChanged.emit())
         self.widgets[name] = widget
         self.form_layout.addRow(label, widget)
 
     def _add_checkbox_widget(self, name, label):
         widget = QCheckBox(label)
         widget.setChecked(getattr(self.config, name, False))
-        widget.stateChanged.connect(self.configChanged.emit)
+        widget.stateChanged.connect(lambda _: self.configChanged.emit())
         self.widgets[name] = widget
         self.form_layout.addRow("", widget)
 
     def _add_file_widget(self, name, label):
         widget = QLineEdit()
         widget.setText(getattr(self.config, name, ""))
-        widget.textChanged.connect(self.configChanged.emit)
+        widget.textChanged.connect(lambda _: self.configChanged.emit())
 
         btn = QPushButton("📂")
         btn.setMaximumWidth(40)
