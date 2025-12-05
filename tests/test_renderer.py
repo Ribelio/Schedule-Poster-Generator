@@ -27,7 +27,7 @@ def test_calculate_scale_factor():
 def test_calculate_max_item_width():
     frame_width = 100
     frame_spacing = 10
-    reference_width = 2 * frame_width + frame_spacing # 210
+    expected_max = 2 * frame_width + frame_spacing  # 210
     
     # Schedule with mixed volume counts
     schedule = [
@@ -37,5 +37,5 @@ def test_calculate_max_item_width():
     ]
     
     max_width = calculate_max_item_width(schedule, frame_width, frame_spacing)
-    assert max_width == 210
+    assert max_width == expected_max
 

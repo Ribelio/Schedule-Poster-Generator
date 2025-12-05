@@ -6,10 +6,19 @@ platforms = ["win-64"]
 version = "0.1.0"
 
 [tasks]
-test = "python -m pytest"
+gui = "python gui.py"
+gen = "python schedule.py"
 
 [dependencies]
 python = ">=3.10"
+
+[feature.test.tasks]
+test = "python -m pytest"
+
+[feature.test.dependencies]
+pytest = "*"
+ruff = "*"
+
 
 [pypi-dependencies]
 pillow = ">=10.0.0"
@@ -18,9 +27,7 @@ requests = "*"
 pyside6 = "*"
 
 
-[feature.test.dependencies]
-pytest = "*"
 
 [environments]
 default = ["default"]
-test = ["default", "test"]
+test = ["test","default"]
