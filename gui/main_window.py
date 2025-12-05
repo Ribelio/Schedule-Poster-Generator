@@ -1,9 +1,13 @@
 from threading import Thread
 
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, QMessageBox, QFileDialog
+    QMainWindow,
+    QWidget,
+    QHBoxLayout,
+    QMessageBox,
+    QFileDialog,
 )
-from PySide6.QtCore import QTimer, Signal, QObject
+from PySide6.QtCore import Qt, QTimer, Signal, QObject
 from PySide6.QtGui import QPixmap, QPalette, QColor
 
 from config import PosterConfig, schedule, cover_urls
@@ -13,9 +17,11 @@ from manga_fetcher import MangaDexFetcher
 from gui.preview_panel import PreviewPanel
 from gui.settings_panel import SettingsPanel
 
+
 class CoverFetchSignals(QObject):
     finished = Signal(dict)
     error = Signal(str)
+
 
 class PosterEditor(QMainWindow):
     def __init__(self):
@@ -25,11 +31,11 @@ class PosterEditor(QMainWindow):
         self.cover_data = {}
         self.current_manga_title = self.config.manga_title
         self.is_loading = False
-        
+
         self._init_timers()
         self._init_ui()
         self._apply_dark_theme()
-        
+
         # Initial fetch
         self._fetch_covers()
 
@@ -38,7 +44,7 @@ class PosterEditor(QMainWindow):
         self.preview_timer.setSingleShot(True)
         self.preview_timer.timeout.connect(self.refresh_preview)
         self.debounce_delay = 500
-        
+
         self.loading_timer = QTimer()
         self.loading_timer.setSingleShot(True)
         self.loading_timer.timeout.connect(self._show_loading)
@@ -46,22 +52,22 @@ class PosterEditor(QMainWindow):
     def _init_ui(self):
         self.setWindowTitle("Schedule Poster Generator")
         self.setGeometry(100, 100, 1400, 900)
-        
+
         central = QWidget()
         self.setCentralWidget(central)
         layout = QHBoxLayout(central)
         layout.setContentsMargins(10, 10, 10, 10)
-        
+
         # Panels
         self.preview_panel = PreviewPanel()
         self.settings_panel = SettingsPanel(self.config)
-        
+
         # Initial schedule
         self.settings_panel.schedule_widget.set_schedule(self.schedule)
-        
+
         layout.addWidget(self.preview_panel, stretch=2)
         layout.addWidget(self.settings_panel, stretch=1)
-        
+
         # Connect signals
         self.settings_panel.configChanged.connect(self._trigger_update)
         self.settings_panel.scheduleChanged.connect(self._trigger_update)
@@ -73,11 +79,11 @@ class PosterEditor(QMainWindow):
     def _trigger_update(self):
         self.preview_timer.stop()
         self.loading_timer.stop()
-        
+
         # Check title change
         # We need to peek at the widget value or sync config first
         # Ideally SettingsPanel emits specific change events or we just check
-        new_title = self.settings_panel.widgets['manga_title'].text().strip()
+        new_title = self.settings_panel.widgets["manga_title"].text().strip()
         if new_title != self.current_manga_title:
             self.current_manga_title = new_title
             # Sync everything first
@@ -100,7 +106,9 @@ class PosterEditor(QMainWindow):
     def refresh_preview(self):
         try:
             self._sync_state()
-            buffer = render_poster_to_buffer(self.config, self.cover_data, self.schedule)
+            buffer = render_poster_to_buffer(
+                self.config, self.cover_data, self.schedule
+            )
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.getvalue())
             self.preview_panel.update_image(pixmap)
@@ -118,18 +126,20 @@ class PosterEditor(QMainWindow):
         vols = set()
         for _, v_list in self.schedule:
             vols.update(v_list)
-            
+
         if not vols:
             return
 
         self.is_loading = True
         self._show_loading()
-        
+
         signals = CoverFetchSignals()
         signals.finished.connect(self._on_fetch_done)
         signals.error.connect(self._on_fetch_error)
-        
-        Thread(target=self._fetch_thread, args=(title, vols, signals), daemon=True).start()
+
+        Thread(
+            target=self._fetch_thread, args=(title, vols, signals), daemon=True
+        ).start()
 
     def _fetch_thread(self, title, vols, signals):
         try:
@@ -153,7 +163,9 @@ class PosterEditor(QMainWindow):
     # --- IO ---
     def _save_preset(self):
         self._sync_state()
-        path, _ = QFileDialog.getSaveFileName(self, "Save Preset", "preset.json", "JSON (*.json)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Preset", "preset.json", "JSON (*.json)"
+        )
         if path:
             self.config.save_to_json(path)
 
@@ -166,18 +178,27 @@ class PosterEditor(QMainWindow):
 
     def _export(self):
         self._sync_state()
-        path, _ = QFileDialog.getSaveFileName(self, "Save Poster", self.config.output_filename, "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save Poster", self.config.output_filename, "PNG (*.png)"
+        )
         if path:
-            if not path.lower().endswith('.png'): path += '.png'
+            if not path.lower().endswith(".png"):
+                path += ".png"
             try:
                 import os
-                os.makedirs(os.path.dirname(path) if os.path.dirname(path) else '.', exist_ok=True)
-                buf = render_poster_to_buffer(self.config, self.cover_data, self.schedule, 'png')
-                with open(path, 'wb') as f:
+
+                os.makedirs(
+                    os.path.dirname(path) if os.path.dirname(path) else ".",
+                    exist_ok=True,
+                )
+                buf = render_poster_to_buffer(
+                    self.config, self.cover_data, self.schedule, "png"
+                )
+                with open(path, "wb") as f:
                     f.write(buf.getvalue())
                 try:
                     os.startfile(path)
-                except:
+                except OSError:
                     pass
             except Exception as e:
                 QMessageBox.critical(self, "Export Error", str(e))
@@ -187,4 +208,3 @@ class PosterEditor(QMainWindow):
         palette.setColor(QPalette.Window, QColor(26, 26, 26))
         palette.setColor(QPalette.WindowText, Qt.white)
         self.setPalette(palette)
-

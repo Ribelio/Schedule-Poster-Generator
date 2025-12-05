@@ -1,1 +1,1 @@
-from gui.main_window import PosterEditor
+from gui.main_window import PosterEditor as PosterEditor
