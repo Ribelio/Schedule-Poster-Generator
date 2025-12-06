@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QLabel
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 
 
@@ -11,7 +11,6 @@ class PreviewPanel(QWidget):
 
     def __init__(self):
         super().__init__()
-        self._current_pixmap = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -55,47 +54,10 @@ class PreviewPanel(QWidget):
         """)
 
     def update_image(self, pixmap: QPixmap):
-        if pixmap.isNull():
-            self.show_error("Failed to load image")
-            return
-        
-        # Store the original pixmap for resizing
-        self._current_pixmap = pixmap
-        self._scale_and_display()
-    
-    def _scale_and_display(self):
-        """Scale the stored pixmap to fit and display it."""
-        if self._current_pixmap is None or self._current_pixmap.isNull():
-            return
-        
-        # Get available size from scroll area viewport
-        scroll_size = self.scroll_area.viewport().size()
-        if scroll_size.width() <= 0 or scroll_size.height() <= 0:
-            # Fallback to label minimum size if scroll area not ready
-            scroll_size = self.preview_label.minimumSize()
-        
         # Scale to fit while maintaining aspect ratio
-        # Leave some padding
-        available_width = max(scroll_size.width() - 20, 100)
-        available_height = max(scroll_size.height() - 20, 100)
-        
-        scaled_pixmap = self._current_pixmap.scaled(
-            available_width, available_height, 
-            Qt.KeepAspectRatio, Qt.SmoothTransformation
+        label_size = self.preview_label.size()
+        scaled_pixmap = pixmap.scaled(
+            label_size, Qt.KeepAspectRatio, Qt.SmoothTransformation
         )
-        
-        # Clear text first to avoid overlap
-        self.preview_label.clear()
         self.preview_label.setPixmap(scaled_pixmap)
-        
-        # Update style without clearing pixmap
-        self.preview_label.setStyleSheet(
-            "background-color: #1a1a1a; border: 1px solid #333;"
-        )
-    
-    def resizeEvent(self, event):
-        """Handle resize events to update image scaling."""
-        super().resizeEvent(event)
-        if self._current_pixmap is not None:
-            # Use a small delay to avoid excessive rescaling during resize
-            QTimer.singleShot(50, self._scale_and_display)
+        self._set_default_style()
